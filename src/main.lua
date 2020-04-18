@@ -28,3 +28,7 @@ function love.resize(w, h)
   state.scale = scale
   state.background_offset = {ox, oy}
 end
+
+function love.update(frames)
+  scene.curr.update(frames)
+end
