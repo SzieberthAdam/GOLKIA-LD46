@@ -14,7 +14,7 @@ M.draw = function()
   if M.golcanvas
   then
     love.graphics.clear(0, 0, 0, 0)
-    love.graphics.draw(M.golcanvas, 0, 0)
+    love.graphics.draw(M.golcanvas, 0, 0, 0, conf.tilew, conf.tilew)
   end
   love.graphics.print("hello",10,10)
 end
@@ -31,8 +31,8 @@ end
 
 M.update_canvas = function()
   M.golcanvas = love.graphics.newCanvas(
-    --conf.worldcols, conf.worldrows
-    conf.screen_width, conf.screen_height
+    conf.worldcols, conf.worldrows
+    --conf.screen_width, conf.screen_height
   )
   love.graphics.setCanvas(M.golcanvas)
   love.graphics.clear(0, 0, 0, 0)
@@ -43,14 +43,14 @@ M.update_canvas = function()
       love.graphics.setColor(0.3*v, 0.6*v, v, 1)  -- important to reset
       love.graphics.rectangle(
         "fill",
-        (c-1)*conf.tilew,
-        (r-1)*conf.tilew,
-        conf.tilew,
-        conf.tilew
-        --(c-1),
-        --(r-1),
-        --1,
-        --1
+        --(c-1)*conf.tilew,
+        --(r-1)*conf.tilew,
+        --conf.tilew,
+        --conf.tilew
+        (c-1),
+        (r-1),
+        1,
+        1
       )
     end
   end
