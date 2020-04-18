@@ -2,9 +2,9 @@ local M = {}
 
 local random = math.random
 
+
 function M.new()
 
-  local colors = { {1,0,0}, {1,1,0}, {0,0,1}, {1,0,1}, {0,1,1}, {0,1,0} }
   local width = (display.actualContentWidth / 8) - 6
   local height = width
 
@@ -52,10 +52,7 @@ function M.new()
     local nextPiece = #pieces+1
 
     --pieces[nextPiece] = display.newCircle(self, c*width + c, r*height + r, width * 0.45)
-    pieces[nextPiece] = display.newText({parent=self,text=tostring(mem[r][c]),x=c*width + c,y=r*height + r,width=width-2,height=height-2,font=native.systemFontBold,fontSize=10,align="center"})
-    pieces[nextPiece].index = random(#colors)
-    local index = pieces[nextPiece].index
-    pieces[nextPiece]:setFillColor(colors[index][1],colors[index][2],colors[index][3])
+    pieces[nextPiece] = display.newText({parent=self,text=tostring(mem[r][c]),x=c*width + c,y=r*height + r,width=width-2,height=height-2,font=native.systemFontBold,fontSize=60,align="center"})
 
     -- make a local copy
     local currentPiece = pieces[nextPiece]
@@ -73,7 +70,20 @@ function M.new()
     end
   end
   board:replunish()
+
+  M.mem=mem
+
   return board
 end
+
+function M.shift()
+  local cl = table.clone(M.mem[1])
+  for i,v in pairs(cl)
+  do
+    M.mem[1][bit32.band(i+1,4)]=v
+  end
+end
+
+timer.performWithDelay( 1000, manageTime, 0 )
 
 return M

@@ -38,7 +38,7 @@ function scene:create( event )
 
 	board = mem.new()
   board.x = display.contentCenterX
-  board.y = display.contentHeight - (board.contentHeight / 2) - display.screenOriginY - 16
+  board.y = display.contentCenterY
 	-- make a crate (off-screen), position it, and rotate slightly
 	--local crate = display.newImageRect( "crate.png", 90, 90 )
 	--crate.x, crate.y = 160, -100
