@@ -1,9 +1,3 @@
------------------------------------------------------------------------------------------
---
--- main.lua
---
------------------------------------------------------------------------------------------
-
 -- hide the status bar
 display.setStatusBar( display.HiddenStatusBar )
 
@@ -11,4 +5,4 @@ display.setStatusBar( display.HiddenStatusBar )
 local composer = require "composer"
 
 -- load menu screen
-composer.gotoScene( "scene.menu" )
+composer.gotoScene( "scene.game" )

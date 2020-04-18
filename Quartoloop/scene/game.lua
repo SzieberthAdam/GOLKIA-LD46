@@ -1,14 +1,10 @@
------------------------------------------------------------------------------------------
---
--- level1.lua
---
------------------------------------------------------------------------------------------
-
 local composer = require( "composer" )
 local scene = composer.newScene()
 
+local mem = require "scene.game.lib.mem"
+
 -- include Corona's "physics" library
-local physics = require "physics"
+--local physics = require "physics"
 
 --------------------------------------------
 
@@ -39,6 +35,10 @@ function scene:create( event )
 	background.anchorY = 0
 	background:setFillColor( .5 )
 
+
+	board = mem.new()
+  board.x = display.contentCenterX
+  board.y = display.contentHeight - (board.contentHeight / 2) - display.screenOriginY - 16
 	-- make a crate (off-screen), position it, and rotate slightly
 	--local crate = display.newImageRect( "crate.png", 90, 90 )
 	--crate.x, crate.y = 160, -100
@@ -60,6 +60,7 @@ function scene:create( event )
 
 	-- all display objects must be inserted into group
 	sceneGroup:insert( background )
+	sceneGroup:insert(board)
 	--sceneGroup:insert( grass)
 	--sceneGroup:insert( crate )
 end
