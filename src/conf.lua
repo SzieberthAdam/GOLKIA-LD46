@@ -12,6 +12,7 @@ M.max_update_frames = 10
 M.loop_relax = 0.005
 
 function love.conf(t)
+  t.console = true
   -- The window title (string)
   t.window.title = "LD46"
   -- Filepath to an image to use as the window's icon (string)

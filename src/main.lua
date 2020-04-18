@@ -1,3 +1,5 @@
+var_dump = require 'lib/var_dump'  -- for debugging
+
 local gameloop = require 'gameloop'
 
 local conf = require 'conf'
