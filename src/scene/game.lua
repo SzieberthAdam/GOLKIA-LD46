@@ -104,7 +104,6 @@ M.update_canvas = function(withshader)
     end
   end
   love.graphics.setColor(1,1,1,1) -- important reset
-  --love.graphics.setCanvas()
   love.graphics.setCanvas(M.golcanvas1)
   if M.withshader then love.graphics.setShader(M.golshader) end
   love.graphics.draw(M.golcanvas)
