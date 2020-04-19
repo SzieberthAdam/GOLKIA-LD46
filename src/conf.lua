@@ -15,7 +15,10 @@ M.refresh_rate = 60
 M.max_update_frames = 10
 M.loop_relax = 0.005
 
-M.turnframes = 1
+M.turnframes = 5
+
+M.black = {0.13333333333333333, 0.13725490196078433, 0.13725490196078433}
+M.white = {0.9411764705882353, 0.9647058823529412, 0.9411764705882353}
 
 function love.conf(t)
   t.console = true

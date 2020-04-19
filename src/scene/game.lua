@@ -122,19 +122,28 @@ M.init = function()
   M.golshader = love.graphics.newShader(golshader_pixelcode)
 
   local r8backshader_pixelcode = [[
+    extern vec4 black;
+    extern vec4 white;
+
     vec4 effect(vec4 color, Image tex, vec2 texture_coords, vec2 screen_coords)
     {
       vec4 newcolor;
       vec4 texcolor = Texel(tex, texture_coords);
       if (0<texcolor.r) {
-        newcolor = vec4(1.0, 1.0, 1.0, 1.0);
+        newcolor = white;
       } else {
-        newcolor = vec4(0.0, 0.0, 0.0, 1.0);
+        newcolor = black;
       }
       return newcolor;
     }
   ]]
   M.r8backshader = love.graphics.newShader(r8backshader_pixelcode)
+  M.r8backshader:sendColor("black",
+    {conf.black[1],conf.black[2],conf.black[3], 1.0}
+  )
+  M.r8backshader:sendColor("white",
+    {conf.white[1],conf.white[2],conf.white[3], 1.0}
+  )
 
 end
 

@@ -40,6 +40,8 @@ function love.load()
 
   local w, h, flags = love.window.getMode()
   love.resize(w, h)  -- called to set initial scale and offset
+
+  love.mouse.setVisible(true);
 end
 
 function love.resize(w, h)
