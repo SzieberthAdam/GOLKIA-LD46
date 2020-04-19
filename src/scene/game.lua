@@ -1,10 +1,12 @@
+local conf = require 'math'
+
 local conf = require 'conf'
 
 M = {}
 
 M.init = function()
   M.world = {}
-  M.turnframes = 60
+  M.turnframes = 1
   M.setrandom()
   M.relaxframes = M.turnframes
 
@@ -30,6 +32,7 @@ M.init = function()
       else if (x < 0) {
         x += love_ScreenSize.x;
       }
+      // map is circular vertically too yet; TODO //
       if (love_ScreenSize.y < y) {
         y -= love_ScreenSize.y;
       }
@@ -62,8 +65,6 @@ M.init = function()
       } else {
         newcolor = vec4(0.0, 0.0, 0.0, 1.0);
       }
-      //newcolor = Texel(tex, vec2(texture_coords[0]+1/love_ScreenSize.x,texture_coords[1]+1/love_ScreenSize.y));//
-      //newcolor = Texel(tex, offset_coords(texture_coords, vec2( 0.0,  1.0)));
       return newcolor;
     }
   ]]
@@ -80,7 +81,6 @@ M.update = function()
   M.relaxframes = M.relaxframes - 1
   if M.relaxframes == 0
   then
-    print(M.withshader)
     M.relaxframes = M.turnframes
     M.update_canvas(M.withshader)
     M.withshader = not M.withshader
@@ -95,17 +95,7 @@ M.update_canvas = function(withshader)
     for c, v in ipairs(worldrow)
     do
       love.graphics.setColor(v, v, v, 1)  -- important to reset
-      love.graphics.rectangle(
-        "fill",
-        --(c-1)*conf.tilew,
-        --(r-1)*conf.tilew,
-        --conf.tilew,
-        --conf.tilew
-        (c-1),
-        (r-1),
-        1,
-        1
-      )
+      love.graphics.rectangle("fill", c-1, r-1, 1, 1)
     end
   end
   love.graphics.setColor(1,1,1,1) -- important reset
@@ -116,6 +106,11 @@ M.update_canvas = function(withshader)
   love.graphics.draw(M.golcanvas)
   if M.withshader then love.graphics.setShader() end
   love.graphics.setCanvas()
+  if M.withshader
+  then -- update world with this trick
+    data = M.golcanvas1:newImageData()
+    data:mapPixel(M.worldlocationfrompixel)
+  end
 end
 
 M.setrandom = function()
@@ -130,6 +125,11 @@ M.setrandom = function()
 end
 
 M.turn = function()
+end
+
+M.worldlocationfrompixel = function(x, y, r, g, b, a)
+  M.world[y+1][x+1] = math.floor(r)
+  return r, g, b, a --do nothing
 end
 
 return M
