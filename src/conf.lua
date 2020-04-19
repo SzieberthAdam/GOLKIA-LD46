@@ -1,11 +1,11 @@
 local M = {}
 
-M.tilew = 4
-M.worldcols = 160
-M.worldrows = 90
+M.tilew = 2
+M.worldcols = (4-M.tilew)*142
+M.worldrows = (4-M.tilew)*89
 
-M.screen_width = M.tilew * M.worldcols
-M.screen_height = M.tilew * M.worldrows
+M.screen_width = 640
+M.screen_height = 360
 
 M.refresh_rate = 60
 M.max_update_frames = 10

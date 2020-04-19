@@ -10,12 +10,37 @@ M.init = function()
   M.setrandom()
   M.relaxframes = M.turnframes
 
+  M.bgcanvas = love.graphics.newCanvas(
+    conf.screen_width, conf.screen_height
+  )
+  love.graphics.setCanvas(M.bgcanvas)
+  love.graphics.clear(0, 0, 0, 1)
+  love.graphics.setColor(0.5333333333333333, 0.13333333333333333, 0.3333333333333333, 1)  -- important to reset
+  love.graphics.rectangle("fill", 1, 1, 638, 358)
+  love.graphics.setColor(0, 0, 0, 1)  -- important to reset
+  love.graphics.rectangle("fill", 2, 2, 66, 88)
+  love.graphics.rectangle("fill", 70, 2, 568, 356)
+  love.graphics.rectangle("fill", 2, 91, 66, 66)
+  love.graphics.rectangle("fill", 2, 158, 66, 66)
+  love.graphics.rectangle("fill", 2, 225, 66, 66)
+  love.graphics.rectangle("fill", 2, 292, 66, 66)
+  love.graphics.setColor(0.5333333333333333, 0.8, 0.9333333333333333, 1)  -- important to reset
+  love.graphics.rectangle("fill", 3, 3, 64, 86)
+  love.graphics.setColor(1,1,1,1)  -- reset
+  love.graphics.rectangle("fill", 3,  92, 64, 64)
+  love.graphics.rectangle("fill", 3, 159, 64, 64)
+  love.graphics.rectangle("fill", 3, 226, 64, 64)
+  love.graphics.rectangle("fill", 3, 293, 64, 64)
+
+  local logo_image = love.graphics.newImage("graphics/logo.png")
+  love.graphics.draw(logo_image, 3, 3)
+  love.graphics.setCanvas()
+
   M.canvas = love.graphics.newCanvas(
     conf.screen_width, conf.screen_height
   )
   M.golcanvas = love.graphics.newCanvas(
     conf.worldcols, conf.worldrows
-    --conf.screen_width, conf.screen_height
   )
   M.golcanvas1 = love.graphics.newCanvas(
     conf.worldcols, conf.worldrows
@@ -79,7 +104,8 @@ end
 M.draw = function()
   love.graphics.setCanvas(M.canvas)
   love.graphics.clear(0, 0, 0, 0)
-  love.graphics.draw(M.golcanvas1, 0, 0, 0, conf.tilew, conf.tilew)
+  love.graphics.draw(M.bgcanvas)
+  love.graphics.draw(M.golcanvas1, 70, 2, 0, conf.tilew, conf.tilew)
   love.graphics.setCanvas()
 end
 
