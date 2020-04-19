@@ -4,10 +4,8 @@ local state = require 'state'
 M = {}
 
 M.init = function()
+  M.running = false
   M.world = {}
-  M.card = {}
-  M.set_random_world()
-  M.reset_card()
   M.relaxframes = conf.turnframes
 
   M.input=nil
@@ -31,17 +29,6 @@ M.init = function()
     conf.screen_width, conf.screen_height
   )
 
-  M.cardcanvast = {}
-  for n = 1, conf.ncards, 1
-  do
-    M.cardcanvast[n] = love.graphics.newCanvas(
-      conf.cardcols, conf.cardrows,
-      {format = "r8"}
-    )
-  end
-
-  M.update_card_canvas()
-
   M.world_canvas0 = love.graphics.newCanvas(
     conf.worldcols, conf.worldrows,
     {format = "r8"}
@@ -52,16 +39,8 @@ M.init = function()
     {format = "r8"}
   )
 
-  love.graphics.setCanvas(M.world_canvas)
-  for r, worldrow in ipairs(M.world)
-  do
-    for c, v in ipairs(worldrow)
-    do
-      love.graphics.setColor(v, v, v, 1)
-      love.graphics.rectangle("fill", c-1, r-1, 1, 1)
-    end
-  end
-  love.graphics.setCanvas()
+  M.restart()
+
 
 
   -- derived from:
@@ -73,10 +52,10 @@ M.init = function()
       x += offset[0];
       y += offset[1];
       if (love_ScreenSize.x < x) {
-        x -= love_ScreenSize.x;
+        return 0;
       }
       else if (x < 0) {
-        x += love_ScreenSize.x;
+        return 0;
       }
       if (love_ScreenSize.y < y) {
         return 0;
@@ -149,42 +128,18 @@ M.draw = function()
   love.graphics.draw(M.background_canvas)
   love.graphics.setShader(M.r8backshader)
   love.graphics.draw(M.world_canvas, 70, 2, 0, conf.tilew, conf.tilew)
-  for n, t in ipairs(conf.cardpos)
-  do
-    love.graphics.draw(M.cardcanvast[n], t[1], t[2], 0, conf.tilew, conf.tilew)
-  end
   love.graphics.setShader()
   love.graphics.setCanvas()
 end
 
 M.update = function(frames) -- TODO! number of frames times
+  if not M.running then return end
   M.relaxframes = M.relaxframes - 1
   if M.relaxframes == 0
   then
     M.relaxframes = conf.turnframes
     M.update_world_canvas()
   end
-end
-
-M.update_card_canvas = function(n)
-  if n == nil then
-    for m = 1, conf.ncards, 1
-    do M.update_card_canvas(m)
-    end
-    return
-  end
-  love.graphics.setCanvas(M.cardcanvast[n])
-  love.graphics.clear(0, 0, 0, 0)
-  for r, row in ipairs(M.card[n])
-  do
-    for c, v in ipairs(row)
-    do
-      love.graphics.setColor(v, v, v, 1)  -- important to reset
-      love.graphics.rectangle("fill", c-1, r-1, 1, 1)
-    end
-  end
-  love.graphics.setColor(1,1,1,1) -- important reset
-  love.graphics.setCanvas()
 end
 
 M.update_world_canvas = function()
@@ -203,42 +158,6 @@ M.update_world_canvas = function()
   love.graphics.setCanvas()
 end
 
-M.reset_card = function(n)
-  if n == nil then
-    for m = 1, conf.ncards, 1
-    do M.reset_card(m)
-    end
-    return
-  end
-  M.card[n] = {}
-  for r = 1, conf.cardrows, 1
-  do
-    M.card[n][r] = {}
-    for c = 1, conf.worldcols, 1
-    do
-      M.card[n][r][c] = 0
-    end
-  end
-end
-
-M.set_random_card = function(n)
-  if n == nil then
-    for m = 1, conf.ncards, 1
-    do M.set_random_card(m)
-    end
-    return
-  end
-  M.card[n] = {}
-  for r = 1, conf.cardrows, 1
-  do
-    M.card[n][r] = {}
-    for c = 1, conf.worldcols, 1
-    do
-      M.card[n][r][c] = love.math.random(0, 1)
-    end
-  end
-end
-
 M.set_random_world = function()
   for r = 1, conf.worldrows, 1
   do
@@ -248,9 +167,21 @@ M.set_random_world = function()
       M.world[r][c] = love.math.random(0, 1)
     end
   end
+  love.graphics.setCanvas(M.world_canvas)
+  for r, worldrow in ipairs(M.world)
+  do
+    for c, v in ipairs(worldrow)
+    do
+      love.graphics.setColor(v, v, v, 1)
+      love.graphics.rectangle("fill", c-1, r-1, 1, 1)
+    end
+  end
+  love.graphics.setCanvas()
 end
 
 M.restart = function()
+  M.set_random_world()
+  M.update_world_canvas()
 end
 
 
@@ -259,7 +190,10 @@ end
 
 function M.keypressed(key, isrepeat)
   if key == "r" then
+    M.running=false
     M.restart()
+  elseif key == "space" then
+    M.running = not M.running
   end
 end
 

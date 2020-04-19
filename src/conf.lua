@@ -4,13 +4,11 @@ M.tilew = 1
 M.worldcols = math.floor(568 / M.tilew)
 M.worldrows = math.floor(356 / M.tilew)
 
-M.cardrows = math.floor(64 / M.tilew)
-M.cardcols = math.floor(64 / M.tilew)
-M.ncards = 3
-M.cardpos = {{3,119},{3,186},{3,253}}
-
 M.screen_width = 640
 M.screen_height = 360
+
+M.window_width = 2*M.screen_width
+M.window_height = 2*M.screen_height
 
 M.refresh_rate = 60
 M.max_update_frames = 10
@@ -30,11 +28,11 @@ function love.conf(t)
   -- Filepath to an image to use as the window's icon (string)
   t.window.icon = nil
   -- The window width (number)
-  t.window.width = M.screen_width
+  t.window.width = M.window_width
   -- Enable fullscreen (boolean)
   t.window.fullscreen = false
   -- The window height (number)       -- Remove all border visuals from the window (boolean)
-  t.window.height = M.screen_height
+  t.window.height = M.window_height
   -- Let the window be user-resizable (boolean)
   t.window.resizable = true
   -- Minimum window width if the window is resizable (number)
