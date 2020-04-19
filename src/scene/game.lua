@@ -1,5 +1,3 @@
-local conf = require 'math'
-
 local conf = require 'conf'
 
 M = {}
@@ -7,9 +5,9 @@ M = {}
 M.init = function()
   M.world = {}
   M.card = {}
-  M.turnframes = 4
   M.set_random_world()
-  M.relaxframes = M.turnframes
+  M.set_random_card()
+  M.relaxframes = conf.turnframes
 
   M.background_canvas = love.graphics.newCanvas(
     conf.screen_width, conf.screen_height
@@ -31,10 +29,6 @@ M.init = function()
   love.graphics.setColor(0.5333333333333333, 0.8, 0.9333333333333333, 1)
   love.graphics.rectangle("fill", 3, 3, 64, 86)
   love.graphics.setColor(1,1,1,1) -- important reset!
-  love.graphics.rectangle("fill", 3,  92, 64, 64)
-  love.graphics.rectangle("fill", 3, 159, 64, 64)
-  love.graphics.rectangle("fill", 3, 226, 64, 64)
-  love.graphics.rectangle("fill", 3, 293, 64, 64)
 
   local logo_image = love.graphics.newImage("graphics/status.png")
   love.graphics.draw(logo_image, 2, 2)
@@ -43,13 +37,26 @@ M.init = function()
   M.canvas = love.graphics.newCanvas(
     conf.screen_width, conf.screen_height
   )
+
+  M.cardcanvast = {}
+  for n = 1, conf.ncards, 1
+  do
+    M.cardcanvast[n] = love.graphics.newCanvas(
+      conf.cardcols, conf.cardrows--,
+      --{format = "r8"}
+    )
+  end
+
   M.world_canvas0 = love.graphics.newCanvas(
-    conf.worldcols, conf.worldrows
+    conf.worldcols, conf.worldrows--,
+    --{format = "r8"}
   )
+
   M.world_canvas = love.graphics.newCanvas(
-    conf.worldcols, conf.worldrows
+    conf.worldcols, conf.worldrows--,
+    --{format = "r8"}
   )
-  M.update_canvas()
+  M.update_world_canvas()
 
   local pixelcode = [[
 
@@ -110,6 +117,10 @@ M.draw = function()
   love.graphics.clear(0, 0, 0, 0)
   love.graphics.draw(M.background_canvas)
   love.graphics.draw(M.world_canvas, 70, 2, 0, conf.tilew, conf.tilew)
+  love.graphics.draw(M.cardcanvast[1], 3, 92, 0, conf.tilew, conf.tilew)
+  love.graphics.draw(M.cardcanvast[1], 3, 159, 0, conf.tilew, conf.tilew)
+  love.graphics.draw(M.cardcanvast[1], 3, 226, 0, conf.tilew, conf.tilew)
+  love.graphics.draw(M.cardcanvast[1], 3, 293, 0, conf.tilew, conf.tilew)
   love.graphics.setCanvas()
 end
 
@@ -117,14 +128,35 @@ M.update = function()
   M.relaxframes = M.relaxframes - 1
   if M.relaxframes == 0
   then
-    M.relaxframes = M.turnframes
-    M.update_canvas(M.withshader)
+    M.relaxframes = conf.turnframes
+    M.update_world_canvas(M.withshader)
     M.withshader = not M.withshader
-    collectgarbage() -- important to avoid memory leak
+    --collectgarbage() -- important to avoid memory leak
   end
 end
 
-M.update_canvas = function(withshader)
+M.update_card_canvas = function(n)
+  if n == nil then
+    for m = 1, conf.ncards, 1
+    do M.update_card_canvas(m)
+    end
+    return
+  end
+  love.graphics.setCanvas(M.cardcanvast[n])
+  love.graphics.clear(0, 0, 0, 0)
+  for r, row in ipairs(M.card[n])
+  do
+    for c, v in ipairs(row)
+    do
+      love.graphics.setColor(v, v, v, 1)  -- important to reset
+      love.graphics.rectangle("fill", c-1, r-1, 1, 1)
+    end
+  end
+  love.graphics.setColor(1,1,1,1) -- important reset
+  love.graphics.setCanvas()
+end
+
+M.update_world_canvas = function(withshader)
   love.graphics.setCanvas(M.world_canvas0)
   love.graphics.clear(0, 0, 0, 0)
   for r, worldrow in ipairs(M.world)
@@ -146,6 +178,24 @@ M.update_canvas = function(withshader)
     data = M.world_canvas:newImageData()
     data:mapPixel(M.worldlocationfrompixel)
     data = nil
+  end
+end
+
+M.set_random_card = function(n)
+  if n == nil then
+    for m = 1, conf.ncards, 1
+    do M.set_random_card(m)
+    end
+    return
+  end
+  M.card[n] = {}
+  for r = 1, conf.cardrows, 1
+  do
+    M.card[n][r] = {}
+    for c = 1, conf.worldcols, 1
+    do
+      M.card[n][r][c] = love.math.random(0, 1)
+    end
   end
 end
 

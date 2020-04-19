@@ -8,6 +8,7 @@ local state = require 'state'
 scene = require 'scene'
 
 function love.draw()
+  if love.report then print(love.report) end--profile info DEBUG
   scene.curr.draw()
   love.graphics.push() -- stores the default coordinate system
   love.graphics.scale(state.scale) -- zoom the camera
@@ -20,6 +21,7 @@ end
 function love.keypressed(key, isrepeat)
   if key == "escape" then
     love.event.quit(0)
+    --love.profiler.stop()
   elseif key == "f11" then
     love.window.setFullscreen(not love.window.getFullscreen(), "desktop")
     love.resize() -- without this the scale do not comes back
@@ -27,6 +29,9 @@ function love.keypressed(key, isrepeat)
 end
 
 function love.load()
+  --love.profiler = require('profile')
+  --love.profiler.start()
+
   love.graphics.setDefaultFilter("nearest")
 
   scene.curr = scene.game
@@ -49,6 +54,12 @@ function love.resize(w, h)
   state.background_offset = {ox, oy}
 end
 
+love.frame = 0
 function love.update(frames)
+  love.frame = love.frame + 1
   scene.curr.update(frames)
+  --if love.frame%100 == 0 then
+  --  love.report = love.profiler.report(20)
+  --  love.profiler.reset()
+  --end
 end

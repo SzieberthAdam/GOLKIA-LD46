@@ -1,11 +1,11 @@
 local M = {}
 
-M.tilew = 2
-M.worldcols = (4-M.tilew)*142
-M.worldrows = (4-M.tilew)*89
+M.tilew = 4
+M.worldcols = math.floor(568 / M.tilew)
+M.worldrows = math.floor(356 / M.tilew)
 
-M.cardrows = 64
-M.cardcols = 64
+M.cardrows = math.floor(64 / M.tilew)
+M.cardcols = math.floor(64 / M.tilew)
 M.ncards = 4
 
 M.screen_width = 640
@@ -14,6 +14,8 @@ M.screen_height = 360
 M.refresh_rate = 60
 M.max_update_frames = 10
 M.loop_relax = 0.005
+
+M.turnframes = 10
 
 function love.conf(t)
   t.console = true
