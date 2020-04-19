@@ -17,6 +17,15 @@ function love.draw()
   love.graphics.pop() -- return to the default coordinates
 end
 
+function love.keypressed(key, isrepeat)
+  if key == "escape" then
+    love.event.quit(0)
+  elseif key == "f11" then
+    love.window.setFullscreen(not love.window.getFullscreen(), "desktop")
+    love.resize() -- without this the scale do not comes back
+  end
+end
+
 function love.load()
   love.graphics.setDefaultFilter("nearest")
 
@@ -28,6 +37,9 @@ function love.load()
 end
 
 function love.resize(w, h)
+  local w_, h_ = love.graphics.getDimensions( )
+  w = w or w_
+  h = h_ or h
   local mcw, mch = conf.screen_width, conf.screen_height
   local scale = math.floor(math.min(w/mcw, h/mch))
   -- Now I update the offset of the maincanvas
