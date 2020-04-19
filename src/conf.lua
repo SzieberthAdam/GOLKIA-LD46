@@ -4,6 +4,10 @@ M.tilew = 2
 M.worldcols = (4-M.tilew)*142
 M.worldrows = (4-M.tilew)*89
 
+M.cardrows = 64
+M.cardcols = 64
+M.ncards = 4
+
 M.screen_width = 640
 M.screen_height = 360
 
@@ -14,7 +18,7 @@ M.loop_relax = 0.005
 function love.conf(t)
   t.console = true
   -- The window title (string)
-  t.window.title = "LD46"
+  t.window.title = "GOLKIA LD46"
   -- Filepath to an image to use as the window's icon (string)
   t.window.icon = nil
   -- The window width (number)

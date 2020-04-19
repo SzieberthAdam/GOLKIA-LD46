@@ -5,44 +5,48 @@ local conf = require 'conf'
 M = {}
 
 M.init = function()
-  M.world = {}--setmetatable({}, {__mode="k"}) -- weak table
+  M.world = {}
+  M.card = {}
   M.turnframes = 4
-  M.setrandom()
+  M.set_random_world()
   M.relaxframes = M.turnframes
 
-  M.bgcanvas = love.graphics.newCanvas(
+  M.background_canvas = love.graphics.newCanvas(
     conf.screen_width, conf.screen_height
   )
-  love.graphics.setCanvas(M.bgcanvas)
+  love.graphics.setCanvas(M.background_canvas)
   love.graphics.clear(0, 0, 0, 1)
-  love.graphics.setColor(0.5333333333333333, 0.13333333333333333, 0.3333333333333333, 1)  -- important to reset
+  love.graphics.setColor(
+    0.5333333333333333, 0.13333333333333333, 0.3333333333333333, 1
+  )
+
   love.graphics.rectangle("fill", 1, 1, 638, 358)
-  love.graphics.setColor(0, 0, 0, 1)  -- important to reset
+  love.graphics.setColor(0, 0, 0, 1)
   love.graphics.rectangle("fill", 2, 2, 66, 88)
   love.graphics.rectangle("fill", 70, 2, 568, 356)
   love.graphics.rectangle("fill", 2, 91, 66, 66)
   love.graphics.rectangle("fill", 2, 158, 66, 66)
   love.graphics.rectangle("fill", 2, 225, 66, 66)
   love.graphics.rectangle("fill", 2, 292, 66, 66)
-  love.graphics.setColor(0.5333333333333333, 0.8, 0.9333333333333333, 1)  -- important to reset
+  love.graphics.setColor(0.5333333333333333, 0.8, 0.9333333333333333, 1)
   love.graphics.rectangle("fill", 3, 3, 64, 86)
-  love.graphics.setColor(1,1,1,1)  -- reset
+  love.graphics.setColor(1,1,1,1) -- important reset!
   love.graphics.rectangle("fill", 3,  92, 64, 64)
   love.graphics.rectangle("fill", 3, 159, 64, 64)
   love.graphics.rectangle("fill", 3, 226, 64, 64)
   love.graphics.rectangle("fill", 3, 293, 64, 64)
 
-  local logo_image = love.graphics.newImage("graphics/logo.png")
-  love.graphics.draw(logo_image, 3, 3)
+  local logo_image = love.graphics.newImage("graphics/status.png")
+  love.graphics.draw(logo_image, 2, 2)
   love.graphics.setCanvas()
 
   M.canvas = love.graphics.newCanvas(
     conf.screen_width, conf.screen_height
   )
-  M.golcanvas = love.graphics.newCanvas(
+  M.world_canvas0 = love.graphics.newCanvas(
     conf.worldcols, conf.worldrows
   )
-  M.golcanvas1 = love.graphics.newCanvas(
+  M.world_canvas = love.graphics.newCanvas(
     conf.worldcols, conf.worldrows
   )
   M.update_canvas()
@@ -104,8 +108,8 @@ end
 M.draw = function()
   love.graphics.setCanvas(M.canvas)
   love.graphics.clear(0, 0, 0, 0)
-  love.graphics.draw(M.bgcanvas)
-  love.graphics.draw(M.golcanvas1, 70, 2, 0, conf.tilew, conf.tilew)
+  love.graphics.draw(M.background_canvas)
+  love.graphics.draw(M.world_canvas, 70, 2, 0, conf.tilew, conf.tilew)
   love.graphics.setCanvas()
 end
 
@@ -116,40 +120,39 @@ M.update = function()
     M.relaxframes = M.turnframes
     M.update_canvas(M.withshader)
     M.withshader = not M.withshader
-    --print('Memory actually used (in kB): ' .. collectgarbage('count'))
     collectgarbage() -- important to avoid memory leak
   end
 end
 
 M.update_canvas = function(withshader)
-  love.graphics.setCanvas(M.golcanvas)
+  love.graphics.setCanvas(M.world_canvas0)
   love.graphics.clear(0, 0, 0, 0)
   for r, worldrow in ipairs(M.world)
   do
     for c, v in ipairs(worldrow)
     do
-      love.graphics.setColor(v, v, v, 1)  -- important to reset
+      love.graphics.setColor(v, v, v, 1)
       love.graphics.rectangle("fill", c-1, r-1, 1, 1)
     end
   end
-  love.graphics.setColor(1,1,1,1) -- important reset
-  love.graphics.setCanvas(M.golcanvas1)
+  love.graphics.setColor(1,1,1,1) -- important reset!
+  love.graphics.setCanvas(M.world_canvas)
   if M.withshader then love.graphics.setShader(M.golshader) end
-  love.graphics.draw(M.golcanvas)
+  love.graphics.draw(M.world_canvas0)
   if M.withshader then love.graphics.setShader() end
   love.graphics.setCanvas()
   if M.withshader
   then -- update world with this trick
-    data = M.golcanvas1:newImageData()
+    data = M.world_canvas:newImageData()
     data:mapPixel(M.worldlocationfrompixel)
     data = nil
   end
 end
 
-M.setrandom = function()
+M.set_random_world = function()
   for r = 1, conf.worldrows, 1
   do
-    M.world[r] = {}--setmetatable({}, {__mode="k"}) -- weak table
+    M.world[r] = {}
     for c = 1, conf.worldcols, 1
     do
       M.world[r][c] = love.math.random(0, 1)
