@@ -24,8 +24,9 @@ local function var_dump(...)
     local args = {...}
     if #args > 1 then
         var_dump(args)
-    else
-        print(recurse(args[1]))
+    elseif args[1]==nil
+    then return "[nil]"
+    else return recurse(args[1])
     end
 end
 return var_dump

@@ -6,10 +6,13 @@ M = {}
 
 M.init = function()
   M.world = {}
-  M.turnframes = 1
+  M.turnframes = 4
   M.setrandom()
   M.relaxframes = M.turnframes
 
+  M.canvas = love.graphics.newCanvas(
+    conf.screen_width, conf.screen_height
+  )
   M.golcanvas = love.graphics.newCanvas(
     conf.worldcols, conf.worldrows
     --conf.screen_width, conf.screen_height
@@ -73,8 +76,10 @@ M.init = function()
 end
 
 M.draw = function()
+  love.graphics.setCanvas(M.canvas)
   love.graphics.clear(0, 0, 0, 0)
   love.graphics.draw(M.golcanvas1, 0, 0, 0, conf.tilew, conf.tilew)
+  love.graphics.setCanvas()
 end
 
 M.update = function()
@@ -99,10 +104,9 @@ M.update_canvas = function(withshader)
     end
   end
   love.graphics.setColor(1,1,1,1) -- important reset
-  love.graphics.setCanvas()
+  --love.graphics.setCanvas()
   love.graphics.setCanvas(M.golcanvas1)
   if M.withshader then love.graphics.setShader(M.golshader) end
-  love.graphics.clear(0, 0, 0, 0)
   love.graphics.draw(M.golcanvas)
   if M.withshader then love.graphics.setShader() end
   love.graphics.setCanvas()

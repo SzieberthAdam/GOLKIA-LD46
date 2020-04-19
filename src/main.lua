@@ -9,6 +9,12 @@ scene = require 'scene'
 
 function love.draw()
   scene.curr.draw()
+  love.graphics.push() -- stores the default coordinate system
+  love.graphics.scale(state.scale) -- zoom the camera
+  -- use the new coordinate system to draw the viewed scene
+  local bgx, bgy = unpack(state.background_offset)
+  love.graphics.draw(scene.curr.canvas, bgx+0, bgy+0)
+  love.graphics.pop() -- return to the default coordinates
 end
 
 function love.load()
