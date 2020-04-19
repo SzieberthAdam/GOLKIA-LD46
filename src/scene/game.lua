@@ -5,7 +5,7 @@ local conf = require 'conf'
 M = {}
 
 M.init = function()
-  M.world = {}
+  M.world = {}--setmetatable({}, {__mode="k"}) -- weak table
   M.turnframes = 4
   M.setrandom()
   M.relaxframes = M.turnframes
@@ -116,6 +116,8 @@ M.update = function()
     M.relaxframes = M.turnframes
     M.update_canvas(M.withshader)
     M.withshader = not M.withshader
+    --print('Memory actually used (in kB): ' .. collectgarbage('count'))
+    collectgarbage() -- important to avoid memory leak
   end
 end
 
@@ -140,13 +142,14 @@ M.update_canvas = function(withshader)
   then -- update world with this trick
     data = M.golcanvas1:newImageData()
     data:mapPixel(M.worldlocationfrompixel)
+    data = nil
   end
 end
 
 M.setrandom = function()
   for r = 1, conf.worldrows, 1
   do
-    M.world[r]={}
+    M.world[r] = {}--setmetatable({}, {__mode="k"}) -- weak table
     for c = 1, conf.worldcols, 1
     do
       M.world[r][c] = love.math.random(0, 1)
