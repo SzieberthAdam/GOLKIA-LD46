@@ -24,7 +24,7 @@ M.init = function()
 
   local pixelcode = [[
 
-    vec2 offset_coords(vec2 texture_coords, vec2 offset) {
+    int state(Image tex, vec2 texture_coords, vec2 offset) {
       float x = texture_coords[0] * love_ScreenSize.x;
       float y = texture_coords[1] * love_ScreenSize.y;
       x += offset[0];
@@ -35,16 +35,17 @@ M.init = function()
       else if (x < 0) {
         x += love_ScreenSize.x;
       }
-      // map is circular vertically too yet; TODO //
       if (love_ScreenSize.y < y) {
-        y -= love_ScreenSize.y;
+        return 0;
       }
       else if (y < 0) {
-        y += love_ScreenSize.y;
+        return 0;
       }
       x /= love_ScreenSize.x;
       y /= love_ScreenSize.y;
-      return vec2(x, y);
+      vec2 coord = vec2(x, y);
+      vec4 color = Texel(tex, coord);
+      return int(color.r);
     }
 
     vec4 effect(vec4 color, Image tex, vec2 texture_coords, vec2 screen_coords)
@@ -52,14 +53,14 @@ M.init = function()
       vec4 newcolor;
       vec4 texcolor = Texel(tex, texture_coords);
       int sum =
-          int(Texel(tex, offset_coords(texture_coords, vec2(-1.0, -1.0))).r)
-        + int(Texel(tex, offset_coords(texture_coords, vec2(-1.0,  0.0))).r)
-        + int(Texel(tex, offset_coords(texture_coords, vec2(-1.0,  1.0))).r)
-        + int(Texel(tex, offset_coords(texture_coords, vec2( 0.0, -1.0))).r)
-        + int(Texel(tex, offset_coords(texture_coords, vec2( 0.0,  1.0))).r)
-        + int(Texel(tex, offset_coords(texture_coords, vec2( 1.0, -1.0))).r)
-        + int(Texel(tex, offset_coords(texture_coords, vec2( 1.0,  0.0))).r)
-        + int(Texel(tex, offset_coords(texture_coords, vec2( 1.0,  1.0))).r)
+          state(tex, texture_coords, vec2(-1.0, -1.0))
+        + state(tex, texture_coords, vec2(-1.0,  0.0))
+        + state(tex, texture_coords, vec2(-1.0,  1.0))
+        + state(tex, texture_coords, vec2( 0.0, -1.0))
+        + state(tex, texture_coords, vec2( 0.0,  1.0))
+        + state(tex, texture_coords, vec2( 1.0, -1.0))
+        + state(tex, texture_coords, vec2( 1.0,  0.0))
+        + state(tex, texture_coords, vec2( 1.0,  1.0))
       ;
       if (sum == 3) {
         newcolor = vec4(1.0, 1.0, 1.0, 1.0);

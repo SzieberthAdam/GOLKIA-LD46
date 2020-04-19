@@ -1,8 +1,8 @@
 local M = {}
 
-M.tilew = 8
-M.worldcols = 54
-M.worldrows = 34
+M.tilew = 4
+M.worldcols = 160
+M.worldrows = 90
 
 M.screen_width = M.tilew * M.worldcols
 M.screen_height = M.tilew * M.worldrows
