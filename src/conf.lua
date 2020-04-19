@@ -6,7 +6,8 @@ M.worldrows = math.floor(356 / M.tilew)
 
 M.cardrows = math.floor(64 / M.tilew)
 M.cardcols = math.floor(64 / M.tilew)
-M.ncards = 4
+M.ncards = 3
+M.cardpos = {{3,119},{3,186},{3,253}}
 
 M.screen_width = 640
 M.screen_height = 360
@@ -19,6 +20,8 @@ M.turnframes = 5
 
 M.black = {0.13333333333333333, 0.13725490196078433, 0.13725490196078433}
 M.white = {0.9411764705882353, 0.9647058823529412, 0.9411764705882353}
+M.green = {0.26666666666666666, 0.6666666666666666, 0.6}
+
 
 function love.conf(t)
   t.console = true

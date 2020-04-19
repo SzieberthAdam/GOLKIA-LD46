@@ -1,4 +1,5 @@
 local conf = require 'conf'
+local state = require 'state'
 
 M = {}
 
@@ -6,32 +7,24 @@ M.init = function()
   M.world = {}
   M.card = {}
   M.set_random_world()
-  M.set_random_card()
+  M.reset_card()
   M.relaxframes = conf.turnframes
+
+  M.input=nil
+  M.inputworldrc=nil
+  M.inputworldbutton=nil
 
   M.background_canvas = love.graphics.newCanvas(
     conf.screen_width, conf.screen_height
   )
   love.graphics.setCanvas(M.background_canvas)
-  love.graphics.clear(0, 0, 0, 1)
-  love.graphics.setColor(
-    0.5333333333333333, 0.13333333333333333, 0.3333333333333333, 1
-  )
-
+  love.graphics.clear(conf.black[1],conf.black[2],conf.black[3], 1)
+  love.graphics.setColor(conf.green[1],conf.green[2],conf.green[3], 1)
   love.graphics.rectangle("fill", 1, 1, 638, 358)
-  love.graphics.setColor(0, 0, 0, 1)
-  love.graphics.rectangle("fill", 2, 2, 66, 88)
-  love.graphics.rectangle("fill", 70, 2, 568, 356)
-  love.graphics.rectangle("fill", 2, 91, 66, 66)
-  love.graphics.rectangle("fill", 2, 158, 66, 66)
-  love.graphics.rectangle("fill", 2, 225, 66, 66)
-  love.graphics.rectangle("fill", 2, 292, 66, 66)
-  love.graphics.setColor(0.5333333333333333, 0.8, 0.9333333333333333, 1)
-  love.graphics.rectangle("fill", 3, 3, 64, 86)
   love.graphics.setColor(1,1,1,1) -- important reset!
 
   local logo_image = love.graphics.newImage("graphics/status.png")
-  love.graphics.draw(logo_image, 2, 2)
+  love.graphics.draw(logo_image, 0, 0)
   love.graphics.setCanvas()
 
   M.canvas = love.graphics.newCanvas(
@@ -46,6 +39,8 @@ M.init = function()
       {format = "r8"}
     )
   end
+
+  M.update_card_canvas()
 
   M.world_canvas0 = love.graphics.newCanvas(
     conf.worldcols, conf.worldrows,
@@ -67,10 +62,11 @@ M.init = function()
     end
   end
   love.graphics.setCanvas()
- -- M.update_world_canvas()
 
+
+  -- derived from:
+  -- https://github.com/skeeto/webgl-game-of-life/blob/master/glsl/gol.frag
   local golshader_pixelcode = [[
-
     int state(Image tex, vec2 texture_coords, vec2 offset) {
       float x = texture_coords[0] * love_ScreenSize.x;
       float y = texture_coords[1] * love_ScreenSize.y;
@@ -153,11 +149,11 @@ M.draw = function()
   love.graphics.draw(M.background_canvas)
   love.graphics.setShader(M.r8backshader)
   love.graphics.draw(M.world_canvas, 70, 2, 0, conf.tilew, conf.tilew)
+  for n, t in ipairs(conf.cardpos)
+  do
+    love.graphics.draw(M.cardcanvast[n], t[1], t[2], 0, conf.tilew, conf.tilew)
+  end
   love.graphics.setShader()
-  love.graphics.draw(M.cardcanvast[1], 3, 92, 0, conf.tilew, conf.tilew)
-  love.graphics.draw(M.cardcanvast[1], 3, 159, 0, conf.tilew, conf.tilew)
-  love.graphics.draw(M.cardcanvast[1], 3, 226, 0, conf.tilew, conf.tilew)
-  love.graphics.draw(M.cardcanvast[1], 3, 293, 0, conf.tilew, conf.tilew)
   love.graphics.setCanvas()
 end
 
@@ -207,6 +203,24 @@ M.update_world_canvas = function()
   love.graphics.setCanvas()
 end
 
+M.reset_card = function(n)
+  if n == nil then
+    for m = 1, conf.ncards, 1
+    do M.reset_card(m)
+    end
+    return
+  end
+  M.card[n] = {}
+  for r = 1, conf.cardrows, 1
+  do
+    M.card[n][r] = {}
+    for c = 1, conf.worldcols, 1
+    do
+      M.card[n][r][c] = 0
+    end
+  end
+end
+
 M.set_random_card = function(n)
   if n == nil then
     for m = 1, conf.ncards, 1
@@ -236,7 +250,88 @@ M.set_random_world = function()
   end
 end
 
-M.turn = function()
+M.restart = function()
 end
+
+
+
+-----------------------------------  EVENTS  -----------------------------------
+
+function M.keypressed(key, isrepeat)
+  if key == "r" then
+    M.restart()
+  end
+end
+
+function M.mousemoved(x, y, dx, dy, istouch)
+  if M.input ~= "draw" then return end
+  local gamexy = realxytogamexy(x, y)
+  if not gamexy then return end
+  local worldrc = gamexytoworldrc(gamexy.x, gamexy.y)
+  if not worldrc then return end
+  local button = M.inputworldbutton
+  love.graphics.setCanvas(M.world_canvas)
+  if button==1--left
+  then love.graphics.setColor(1,1,1,1)
+  elseif button==2--right
+  then love.graphics.setColor(0,0,0,1)
+  end
+  love.graphics.points(worldrc.c,worldrc.r)
+  love.graphics.setColor(1,1,1,1)
+  love.graphics.setCanvas()
+end
+
+function M.mousepressed(x, y, button, istouch, presses)
+  local gamexy = realxytogamexy(x, y)
+  if not gamexy then return end
+  local worldrc = gamexytoworldrc(gamexy.x, gamexy.y)
+  if not worldrc then return end
+  M.input="draw"
+  M.inputworldrc=worldrc
+  M.inputworldbutton=button
+  love.graphics.setCanvas(M.world_canvas)
+  if button==1--left
+  then love.graphics.setColor(1,1,1,1)
+  elseif button==2--right
+  then love.graphics.setColor(0,0,0,1)
+  end
+  love.graphics.points(worldrc.c, worldrc.r)
+  love.graphics.setColor(1,1,1,1)
+  love.graphics.setCanvas()
+ end
+
+ function M.mousereleased(x, y, button, istouch, presses)
+  M.input=nil
+  M.inputworldrc=nil
+  M.inputworldbutton=nil
+ end
+
+
+
+-----------------------------------  HELPER  -----------------------------------
+
+function realxytogamexy(x, y)
+  x = math.floor(x / state.scale) - state.background_offset[1]
+  y = math.floor(y / state.scale) - state.background_offset[2]
+  if x < 0 or conf.screen_width < x then return end
+  if y < 0 or conf.screen_height < y then return end
+  return {x=x,y=y}
+end
+
+function gamexytoworldrc(x, y)
+  if (70<=x and x<=637 and 2<=y and y<=357)
+  then
+    local c = math.ceil((x-69)/conf.tilew)
+    local r = math.ceil((y-1)/conf.tilew)
+    if conf.worldrows<r or conf.worldcols<c then return end
+    return {r=r,c=c}
+  end
+end
+
+
+
+
+
+
 
 return M
