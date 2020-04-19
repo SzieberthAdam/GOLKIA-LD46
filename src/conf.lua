@@ -1,6 +1,6 @@
 local M = {}
 
-M.tilew = 4
+M.tilew = 1
 M.worldcols = math.floor(568 / M.tilew)
 M.worldrows = math.floor(356 / M.tilew)
 
@@ -15,7 +15,7 @@ M.refresh_rate = 60
 M.max_update_frames = 10
 M.loop_relax = 0.005
 
-M.turnframes = 10
+M.turnframes = 1
 
 function love.conf(t)
   t.console = true

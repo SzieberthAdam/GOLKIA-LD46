@@ -8,7 +8,8 @@ local state = require 'state'
 scene = require 'scene'
 
 function love.draw()
-  if love.report then print(love.report) end--profile info DEBUG
+  --print("Current FPS: "..tostring(love.timer.getFPS( )))
+  --if love.report then print(love.report) end--profile info DEBUG
   scene.curr.draw()
   love.graphics.push() -- stores the default coordinate system
   love.graphics.scale(state.scale) -- zoom the camera
@@ -56,6 +57,7 @@ end
 
 love.frame = 0
 function love.update(frames)
+  --print('Memory actually used (in kB): ' .. collectgarbage('count'))
   love.frame = love.frame + 1
   scene.curr.update(frames)
   --if love.frame%100 == 0 then

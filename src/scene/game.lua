@@ -42,23 +42,34 @@ M.init = function()
   for n = 1, conf.ncards, 1
   do
     M.cardcanvast[n] = love.graphics.newCanvas(
-      conf.cardcols, conf.cardrows--,
-      --{format = "r8"}
+      conf.cardcols, conf.cardrows,
+      {format = "r8"}
     )
   end
 
   M.world_canvas0 = love.graphics.newCanvas(
-    conf.worldcols, conf.worldrows--,
-    --{format = "r8"}
+    conf.worldcols, conf.worldrows,
+    {format = "r8"}
   )
 
   M.world_canvas = love.graphics.newCanvas(
-    conf.worldcols, conf.worldrows--,
-    --{format = "r8"}
+    conf.worldcols, conf.worldrows,
+    {format = "r8"}
   )
-  M.update_world_canvas()
 
-  local pixelcode = [[
+  love.graphics.setCanvas(M.world_canvas)
+  for r, worldrow in ipairs(M.world)
+  do
+    for c, v in ipairs(worldrow)
+    do
+      love.graphics.setColor(v, v, v, 1)
+      love.graphics.rectangle("fill", c-1, r-1, 1, 1)
+    end
+  end
+  love.graphics.setCanvas()
+ -- M.update_world_canvas()
+
+  local golshader_pixelcode = [[
 
     int state(Image tex, vec2 texture_coords, vec2 offset) {
       float x = texture_coords[0] * love_ScreenSize.x;
@@ -108,15 +119,32 @@ M.init = function()
       return newcolor;
     }
   ]]
-  M.golshader = love.graphics.newShader(pixelcode)
-  M.withshader = false
+  M.golshader = love.graphics.newShader(golshader_pixelcode)
+
+  local r8backshader_pixelcode = [[
+    vec4 effect(vec4 color, Image tex, vec2 texture_coords, vec2 screen_coords)
+    {
+      vec4 newcolor;
+      vec4 texcolor = Texel(tex, texture_coords);
+      if (0<texcolor.r) {
+        newcolor = vec4(1.0, 1.0, 1.0, 1.0);
+      } else {
+        newcolor = vec4(0.0, 0.0, 0.0, 1.0);
+      }
+      return newcolor;
+    }
+  ]]
+  M.r8backshader = love.graphics.newShader(r8backshader_pixelcode)
+
 end
 
 M.draw = function()
   love.graphics.setCanvas(M.canvas)
   love.graphics.clear(0, 0, 0, 0)
   love.graphics.draw(M.background_canvas)
+  love.graphics.setShader(M.r8backshader)
   love.graphics.draw(M.world_canvas, 70, 2, 0, conf.tilew, conf.tilew)
+  love.graphics.setShader()
   love.graphics.draw(M.cardcanvast[1], 3, 92, 0, conf.tilew, conf.tilew)
   love.graphics.draw(M.cardcanvast[1], 3, 159, 0, conf.tilew, conf.tilew)
   love.graphics.draw(M.cardcanvast[1], 3, 226, 0, conf.tilew, conf.tilew)
@@ -124,14 +152,12 @@ M.draw = function()
   love.graphics.setCanvas()
 end
 
-M.update = function()
+M.update = function(frames) -- TODO! number of frames times
   M.relaxframes = M.relaxframes - 1
   if M.relaxframes == 0
   then
     M.relaxframes = conf.turnframes
-    M.update_world_canvas(M.withshader)
-    M.withshader = not M.withshader
-    --collectgarbage() -- important to avoid memory leak
+    M.update_world_canvas()
   end
 end
 
@@ -156,29 +182,20 @@ M.update_card_canvas = function(n)
   love.graphics.setCanvas()
 end
 
-M.update_world_canvas = function(withshader)
+M.update_world_canvas = function()
+  -- clone canvas
   love.graphics.setCanvas(M.world_canvas0)
-  love.graphics.clear(0, 0, 0, 0)
-  for r, worldrow in ipairs(M.world)
-  do
-    for c, v in ipairs(worldrow)
-    do
-      love.graphics.setColor(v, v, v, 1)
-      love.graphics.rectangle("fill", c-1, r-1, 1, 1)
-    end
-  end
-  love.graphics.setColor(1,1,1,1) -- important reset!
-  love.graphics.setCanvas(M.world_canvas)
-  if M.withshader then love.graphics.setShader(M.golshader) end
-  love.graphics.draw(M.world_canvas0)
-  if M.withshader then love.graphics.setShader() end
+  love.graphics.setColor(1,1,1,1)
+  love.graphics.draw(M.world_canvas, 0, 0)
   love.graphics.setCanvas()
-  if M.withshader
-  then -- update world with this trick
-    data = M.world_canvas:newImageData()
-    data:mapPixel(M.worldlocationfrompixel)
-    data = nil
-  end
+
+  love.graphics.setCanvas(M.world_canvas)
+  love.graphics.setColor(1,1,1,1)
+  --love.graphics.clear(0, 0, 0, 0)
+  love.graphics.setShader(M.golshader)
+  love.graphics.draw(M.world_canvas0)
+  love.graphics.setShader()
+  love.graphics.setCanvas()
 end
 
 M.set_random_card = function(n)
@@ -211,11 +228,6 @@ M.set_random_world = function()
 end
 
 M.turn = function()
-end
-
-M.worldlocationfrompixel = function(x, y, r, g, b, a)
-  M.world[y+1][x+1] = math.floor(r)
-  return r, g, b, a --do nothing
 end
 
 return M
