@@ -90,3 +90,8 @@ function love.mousereleased(x, y, button, istouch, presses)
   local f = scene.curr.mousereleased
   if f then f(x, y, button, istouch, presses) end
 end
+
+function love.wheelmoved(x, y)
+  local f = scene.curr.wheelmoved
+  if f then f(x, y, button, istouch, presses) end
+end

@@ -6,6 +6,10 @@ M = {}
 M.init = function()
   M.running = false
   M.world = {}
+  M.worldzoom = 1
+  M.worldzoomrc = nil
+  M.worldzoomxy = nil
+
   M.relaxframes = conf.turnframes
 
   M.input=nil
@@ -31,7 +35,7 @@ M.init = function()
 
   M.world_canvas0 = love.graphics.newCanvas(
     conf.worldcols, conf.worldrows,
-    {format = "r8"}
+    {format = "r8"} -- for efficiency
   )
 
   M.world_canvas = love.graphics.newCanvas(
@@ -127,7 +131,20 @@ M.draw = function()
   love.graphics.clear(0, 0, 0, 0)
   love.graphics.draw(M.background_canvas)
   love.graphics.setShader(M.r8backshader)
-  love.graphics.draw(M.world_canvas, 70, 2, 0, conf.tilew, conf.tilew)
+  if M.worldzoom==1
+  then
+    love.graphics.draw(M.world_canvas, 70, 2, 0, conf.tilew, conf.tilew)
+  else
+
+    local quad = love.graphics.newQuad(
+      M.worldzoomrc.c-M.worldzoomrc.c/conf.worldcols/M.worldzoom,
+      M.worldzoomrc.r-M.worldzoomrc.r/conf.worldrows/M.worldzoom,
+      math.floor(conf.worldcols/M.worldzoom),
+      math.floor(conf.worldrows/M.worldzoom),
+      conf.worldcols, conf.worldrows
+    )
+    love.graphics.draw(M.world_canvas, quad, 70, 2, 0, conf.tilew*M.worldzoom, conf.tilew*M.worldzoom)
+  end
   love.graphics.setShader()
   love.graphics.setCanvas()
 end
@@ -186,10 +203,12 @@ end
 
 
 
+
+
 -----------------------------------  EVENTS  -----------------------------------
 
 function M.keypressed(key, isrepeat)
-  if key == "r" then
+  if key == "n" then
     M.running=false
     M.restart()
   elseif key == "space" then
@@ -199,9 +218,7 @@ end
 
 function M.mousemoved(x, y, dx, dy, istouch)
   if M.input ~= "draw" then return end
-  local gamexy = realxytogamexy(x, y)
-  if not gamexy then return end
-  local worldrc = gamexytoworldrc(gamexy.x, gamexy.y)
+  local worldrc = M.realxytoworldrc(x,y)
   if not worldrc then return end
   local button = M.inputworldbutton
   love.graphics.setCanvas(M.world_canvas)
@@ -216,9 +233,7 @@ function M.mousemoved(x, y, dx, dy, istouch)
 end
 
 function M.mousepressed(x, y, button, istouch, presses)
-  local gamexy = realxytogamexy(x, y)
-  if not gamexy then return end
-  local worldrc = gamexytoworldrc(gamexy.x, gamexy.y)
+  local worldrc = M.realxytoworldrc(x,y)
   if not worldrc then return end
   M.input="draw"
   M.inputworldrc=worldrc
@@ -240,6 +255,17 @@ function M.mousepressed(x, y, button, istouch, presses)
   M.inputworldbutton=nil
  end
 
+ function M.wheelmoved(x, y)
+  --local worldrc = M.mouseworldrc()
+  --if not worldrc then return end
+  --print("w "..tostring(worldrc.c).." "..tostring(worldrc.r))
+  --M.worldzoomrc=worldrc
+  --M.worldzoom = math.max(1,math.min(conf.maxworldzoom, M.worldzoom+x+y))
+  --print("z "..M.worldzoom)
+  --M.worldzoomxy=M.mouseworldxy()
+end
+
+
 
 
 -----------------------------------  HELPER  -----------------------------------
@@ -252,18 +278,48 @@ function realxytogamexy(x, y)
   return {x=x,y=y}
 end
 
+function gamexytoworldxy(x, y)
+  if (70<=x and x<=637 and 2<=y and y<=357)
+  then
+    return {x=x-69,y=y-1}
+  end
+end
+
 function gamexytoworldrc(x, y)
   if (70<=x and x<=637 and 2<=y and y<=357)
   then
-    local c = math.ceil((x-69)/conf.tilew)
-    local r = math.ceil((y-1)/conf.tilew)
+    local c = math.ceil((x-69)/conf.tilew/M.worldzoom)
+    local r = math.ceil((y-1)/conf.tilew/M.worldzoom)
     if conf.worldrows<r or conf.worldcols<c then return end
     return {r=r,c=c}
   end
 end
 
+M.realxytoworldrc = function(x, y)
+  xp, yp = love.mouse.getPosition( )
+  local gamexy = realxytogamexy(x, y)
+  if not gamexy then return end
+  return gamexytoworldrc(gamexy.x, gamexy.y)
+end
 
+M.mouseworldrc = function()
+  xp, yp = love.mouse.getPosition()
+ -- print("r "..xp.." "..yp)
+  local gamexy = realxytogamexy(xp, yp)
+  if not gamexy then return end
+  --print("g "..tostring(gamexy.x).." "..tostring(gamexy.y))
+  return gamexytoworldrc(gamexy.x, gamexy.y)
+end
 
+M.mouseworldxy = function()
+  xp, yp = love.mouse.getPosition()
+  local gamexy = realxytogamexy(xp, yp)
+  if not gamexy then return end
+  local worldxy = gamexytoworldxy(gamexy.x, gamexy.y)
+  if not worldxy then return end
+  --print("wx "..tostring(worldxy.x).." "..tostring(worldxy.y))
+  return worldxy
+end
 
 
 
