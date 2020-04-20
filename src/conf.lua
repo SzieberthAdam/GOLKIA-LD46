@@ -24,7 +24,7 @@ M.green = {0.26666666666666666, 0.6666666666666666, 0.6}
 
 
 function love.conf(t)
-  t.console = true
+  t.console = false
   -- The window title (string)
   t.window.title = "GOLKIA LD46"
   -- Filepath to an image to use as the window's icon (string)
