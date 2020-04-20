@@ -9,4 +9,4 @@ A game made for Ludum Dare 46.
 
 Rest in peace John Horton Conway.
 
-![Screenshot](https://github.com/SzieberthAdam/Quartoloop-LD46/blob/master/etc/graphics/cover.png?raw=true)
+![Screenshot](https://github.com/SzieberthAdam/GOLKIA-LD46/blob/master/etc/graphics/cover.png?raw=true)
