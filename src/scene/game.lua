@@ -1,3 +1,5 @@
+var_dump = require 'lib/var_dump'  -- for debugging
+
 local conf = require 'conf'
 local state = require 'state'
 
@@ -6,15 +8,20 @@ M = {}
 M.init = function()
   M.running = false
   M.world = {}
+
   M.worldzoom = 1
   M.worldzoomrc = nil
   M.worldzoomxy = nil
+  M.worldvp = {x=0, y=0} --viewport
 
   M.relaxframes = conf.turnframes
 
   M.input=nil
-  M.inputworldrc=nil
+  M.inputworldcr=nil
   M.inputworldbutton=nil
+
+
+
 
   M.background_canvas = love.graphics.newCanvas(
     conf.screen_width, conf.screen_height
@@ -33,7 +40,7 @@ M.init = function()
     conf.screen_width, conf.screen_height
   )
 
-  M.world_canvas0 = love.graphics.newCanvas(
+  M.prev_world_canvas = love.graphics.newCanvas(
     conf.worldcols, conf.worldrows,
     {format = "r8"} -- for efficiency
   )
@@ -144,14 +151,16 @@ M.draw = function()
   love.graphics.clear(0, 0, 0, 0)
   love.graphics.draw(M.background_canvas)
   love.graphics.setShader(M.r8backshader)
+  local vpx, vpy = M.worldvp.x, M.worldvp.y
   if M.worldzoom==1
   then
     love.graphics.draw(M.world_canvas, 70, 2, 0, conf.tilew, conf.tilew)
   else
+    --love.graphics.draw(M.world_canvas, 70, 2, 0, conf.tilew, conf.tilew)--TURNOFF
 
     local quad = love.graphics.newQuad(
-      M.worldzoomrc.c-M.worldzoomrc.c/conf.worldcols/M.worldzoom,
-      M.worldzoomrc.r-M.worldzoomrc.r/conf.worldrows/M.worldzoom,
+      math.max(0, math.floor(vpx)),
+      math.max(0, math.floor(vpy)),
       math.floor(conf.worldcols/M.worldzoom),
       math.floor(conf.worldrows/M.worldzoom),
       conf.worldcols, conf.worldrows
@@ -173,19 +182,22 @@ M.update = function(frames) -- TODO! number of frames times
 end
 
 M.update_world_canvas = function()
-  -- clone canvas
-  love.graphics.setCanvas(M.world_canvas0)
+  -- copy world_canvas -> prev_world_canvas
+  love.graphics.setCanvas(M.prev_world_canvas)
   love.graphics.setColor(1,1,1,1)
   love.graphics.draw(M.world_canvas, 0, 0)
   love.graphics.setCanvas()
 
+  -- apply the shader (GOL step) on prev_world_canvas and draw it to world_canvas
   love.graphics.setCanvas(M.world_canvas)
   love.graphics.setColor(1,1,1,1)
-  --love.graphics.clear(0, 0, 0, 0)
   love.graphics.setShader(M.golshader)
-  love.graphics.draw(M.world_canvas0)
+  love.graphics.draw(M.prev_world_canvas)
   love.graphics.setShader()
   love.graphics.setCanvas()
+
+  -- prev_world_canvas has the previous GOL state
+  -- world_canvas has the current GOL state
 end
 
 M.set_random_world = function()
@@ -230,9 +242,21 @@ function M.keypressed(key, isrepeat)
 end
 
 function M.mousemoved(x, y, dx, dy, istouch)
+  local t = M.mousepos()
+  local t = M.mousepos()
+  print("========= BEGIN mousemoved =========")
+  print(
+    "screenxy=["..tostring(t.x)..","..tostring(t.y).."]"
+    .." gamexy=["..tostring(t.x_g)..","..tostring(t.y_g).."]"
+  )
+  print(
+    "worldxy=["..tostring(t.x_gw)..","..tostring(t.y_gw).."]"
+    .." worldcr={"..tostring(t.c_gw)..","..tostring(t.r_gw).."}"
+  )
+  print("========= END mousemoved =========")
   if M.input ~= "draw" then return end
-  local worldrc = M.realxytoworldrc(x,y)
-  if not worldrc then return end
+  local c, r = M.realxytoworldcr(x,y)
+  if not c then return end
   local button = M.inputworldbutton
   love.graphics.setCanvas(M.world_canvas)
   if button==1--left
@@ -240,16 +264,16 @@ function M.mousemoved(x, y, dx, dy, istouch)
   elseif button==2--right
   then love.graphics.setColor(0,0,0,1)
   end
-  love.graphics.points(worldrc.c,worldrc.r)
+  love.graphics.points(c,r)
   love.graphics.setColor(1,1,1,1)
   love.graphics.setCanvas()
 end
 
 function M.mousepressed(x, y, button, istouch, presses)
-  local worldrc = M.realxytoworldrc(x,y)
-  if not worldrc then return end
+  local c,r = M.realxytoworldcr(x,y)
+  if not c then return end
   M.input="draw"
-  M.inputworldrc=worldrc
+  M.inputworldcr={c, r}
   M.inputworldbutton=button
   love.graphics.setCanvas(M.world_canvas)
   if button==1--left
@@ -257,25 +281,39 @@ function M.mousepressed(x, y, button, istouch, presses)
   elseif button==2--right
   then love.graphics.setColor(0,0,0,1)
   end
-  love.graphics.points(worldrc.c, worldrc.r)
+  love.graphics.points(c, r)
   love.graphics.setColor(1,1,1,1)
   love.graphics.setCanvas()
  end
 
  function M.mousereleased(x, y, button, istouch, presses)
   M.input=nil
-  M.inputworldrc=nil
+  M.inputworldcr=nil
   M.inputworldbutton=nil
  end
 
  function M.wheelmoved(x, y)
-  --local worldrc = M.mouseworldrc()
-  --if not worldrc then return end
-  --print("w "..tostring(worldrc.c).." "..tostring(worldrc.r))
-  --M.worldzoomrc=worldrc
-  --M.worldzoom = math.max(1,math.min(conf.maxworldzoom, M.worldzoom+x+y))
-  --print("z "..M.worldzoom)
-  --M.worldzoomxy=M.mouseworldxy()
+  local t = M.mousepos()
+  print("========= BEGIN wheelmoved =========")
+  print(
+    "screenxy=["..tostring(t.x)..","..tostring(t.y).."]"
+    .." gamexy=["..tostring(t.x_g)..","..tostring(t.y_g).."]"
+  )
+  print(
+    "worldxy=["..tostring(t.x_gw)..","..tostring(t.y_gw).."]"
+    .." worldcr={"..tostring(t.c_gw)..","..tostring(t.r_gw).."}"
+  )
+  if t.x_gw then
+    --local prevworldzoom = M.worldzoom
+    M.worldzoom = math.max(1,math.min(conf.maxworldzoom, M.worldzoom+x+y))
+    M.worldvp.x=t.c_gw-0.5-(t.x_gw-0.5)/M.worldzoom
+    M.worldvp.y=t.r_gw-0.5-(t.y_gw-0.5)/M.worldzoom
+    print(
+      "zoom="..M.worldzoom
+      .." vp=["..tostring(M.worldvp.x)..","..tostring(M.worldvp.y).."]"
+    )
+  end
+  print("========= END wheelmoved =========")
 end
 
 
@@ -284,54 +322,44 @@ end
 -----------------------------------  HELPER  -----------------------------------
 
 function realxytogamexy(x, y)
+  if not x or not y then return end
   x = math.floor(x / state.scale) - state.background_offset[1]
   y = math.floor(y / state.scale) - state.background_offset[2]
   if x < 0 or conf.screen_width < x then return end
   if y < 0 or conf.screen_height < y then return end
-  return {x=x,y=y}
+  return unpack({x, y})
 end
 
 function gamexytoworldxy(x, y)
+  if not x or not y then return end
   if (70<=x and x<=637 and 2<=y and y<=357)
-  then
-    return {x=x-69,y=y-1}
+  then return unpack({x-69,y-1})
   end
 end
 
-function gamexytoworldrc(x, y)
-  if (70<=x and x<=637 and 2<=y and y<=357)
+function worldxytoworldcr(x, y)
+  if not x or not y then return end
+  local c = math.ceil(x/conf.tilew)
+  local r = math.ceil(y/conf.tilew)
+  if conf.worldrows<r or conf.worldcols<c then return end
+  return unpack({c, r})
+end
+
+M.realxytoworldcr = function(x, y)
+  if not x or not y then return end
+  return worldxytoworldcr(gamexytoworldxy(realxytogamexy(x, y)))
+end
+
+M.mousepos = function()
+  local r={}
+  r.x, r.y = love.mouse.getPosition()
+  r.x_g, r.y_g = realxytogamexy(r.x, r.y)
+  if r.x_g
   then
-    local c = math.ceil((x-69)/conf.tilew/M.worldzoom)
-    local r = math.ceil((y-1)/conf.tilew/M.worldzoom)
-    if conf.worldrows<r or conf.worldcols<c then return end
-    return {r=r,c=c}
+    r.x_gw, r.y_gw = gamexytoworldxy(r.x_g, r.y_g)
+    r.c_gw, r.r_gw = worldxytoworldcr(r.x_gw, r.y_gw)
   end
-end
-
-M.realxytoworldrc = function(x, y)
-  xp, yp = love.mouse.getPosition( )
-  local gamexy = realxytogamexy(x, y)
-  if not gamexy then return end
-  return gamexytoworldrc(gamexy.x, gamexy.y)
-end
-
-M.mouseworldrc = function()
-  xp, yp = love.mouse.getPosition()
- -- print("r "..xp.." "..yp)
-  local gamexy = realxytogamexy(xp, yp)
-  if not gamexy then return end
-  --print("g "..tostring(gamexy.x).." "..tostring(gamexy.y))
-  return gamexytoworldrc(gamexy.x, gamexy.y)
-end
-
-M.mouseworldxy = function()
-  xp, yp = love.mouse.getPosition()
-  local gamexy = realxytogamexy(xp, yp)
-  if not gamexy then return end
-  local worldxy = gamexytoworldxy(gamexy.x, gamexy.y)
-  if not worldxy then return end
-  --print("wx "..tostring(worldxy.x).." "..tostring(worldxy.y))
-  return worldxy
+  return r
 end
 
 

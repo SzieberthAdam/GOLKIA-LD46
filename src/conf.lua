@@ -1,14 +1,17 @@
 local M = {}
 
+M.debug = true
+
 M.tilew = 1
 M.worldcols = math.floor(568 / M.tilew)
 M.worldrows = math.floor(356 / M.tilew)
 
 M.screen_width = 640
 M.screen_height = 360
+M.screen_scale = 3
 
-M.window_width = 2*M.screen_width
-M.window_height = 2*M.screen_height
+M.window_width = M.screen_scale*M.screen_width
+M.window_height = M.screen_scale*M.screen_height
 
 M.refresh_rate = 60
 M.max_update_frames = 10
@@ -24,7 +27,7 @@ M.green = {0.26666666666666666, 0.6666666666666666, 0.6}
 
 
 function love.conf(t)
-  t.console = false
+  t.console = M.debug
   -- The window title (string)
   t.window.title = "GOLKIA LD46"
   -- Filepath to an image to use as the window's icon (string)
