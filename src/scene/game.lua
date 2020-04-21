@@ -67,6 +67,19 @@ M.init = function()
       else if (y < 0) {
         return 0;
       }
+      // if (love_ScreenSize.x < x) {
+      //   x -= love_ScreenSize.x;
+      // }
+      // else if (x < 0) {
+      //   x += love_ScreenSize.x;
+      // }
+      // // map is circular vertically too yet; TODO //
+      // if (love_ScreenSize.y < y) {
+      //   y -= love_ScreenSize.y;
+      // }
+      // else if (y < 0) {
+      //   y += love_ScreenSize.y;
+      // }
       x /= love_ScreenSize.x;
       y /= love_ScreenSize.y;
       vec2 coord = vec2(x, y);
