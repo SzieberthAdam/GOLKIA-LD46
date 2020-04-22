@@ -1,18 +1,18 @@
 var_dump = require 'lib/var_dump'  -- for debugging
 
+local helper = require 'helper'
+
 local conf = require 'conf'
 local state = require 'state'
 
-M = {}
+local M = {}
 
 M.init = function()
   M.running = false
   M.world = {}
 
-  M.worldzoom = 1
-  M.worldzoomrc = nil
-  M.worldzoomxy = nil
-  M.worldvp = {x=0, y=0} --viewport
+  M.vp = {x=70, y=2, c=0, r=0, zoom=1} -- viewport
+  M.prevvp = nil -- previous viewport
 
   M.relaxframes = conf.turnframes
 
@@ -150,24 +150,12 @@ M.draw = function()
   love.graphics.setCanvas(M.canvas)
   love.graphics.clear(0, 0, 0, 0)
   love.graphics.draw(M.background_canvas)
+  love.graphics.setScissor(70, 2, 568, 356)
   love.graphics.setShader(M.r8backshader)
-  local vpx, vpy = M.worldvp.x, M.worldvp.y
-  if M.worldzoom==1
-  then
-    love.graphics.draw(M.world_canvas, 70, 2, 0, conf.tilew, conf.tilew)
-  else
-    --love.graphics.draw(M.world_canvas, 70, 2, 0, conf.tilew, conf.tilew)--TURNOFF
-
-    local quad = love.graphics.newQuad(
-      math.max(0, math.floor(vpx)),
-      math.max(0, math.floor(vpy)),
-      math.floor(conf.worldcols/M.worldzoom),
-      math.floor(conf.worldrows/M.worldzoom),
-      conf.worldcols, conf.worldrows
-    )
-    love.graphics.draw(M.world_canvas, quad, 70, 2, 0, conf.tilew*M.worldzoom, conf.tilew*M.worldzoom)
-  end
+  love.graphics.draw(M.world_canvas, M.vp.x, M.vp.y, 0,
+    conf.tilew*M.vp.zoom, conf.tilew*M.vp.zoom)
   love.graphics.setShader()
+  love.graphics.setScissor( x, y, width, height )
   love.graphics.setCanvas()
 end
 
@@ -242,46 +230,38 @@ function M.keypressed(key, isrepeat)
 end
 
 function M.mousemoved(x, y, dx, dy, istouch)
-  local t = M.mousepos()
-  local t = M.mousepos()
-  print("========= BEGIN mousemoved =========")
-  print(
-    "screenxy=["..tostring(t.x)..","..tostring(t.y).."]"
-    .." gamexy=["..tostring(t.x_g)..","..tostring(t.y_g).."]"
-  )
-  print(
-    "worldxy=["..tostring(t.x_gw)..","..tostring(t.y_gw).."]"
-    .." worldcr={"..tostring(t.c_gw)..","..tostring(t.r_gw).."}"
-  )
-  print("========= END mousemoved =========")
   if M.input ~= "draw" then return end
-  local c, r = M.realxytoworldcr(x,y)
-  if not c then return end
+  local t = M.mousepos(x, y)
+  if not t.c then return end
   local button = M.inputworldbutton
   love.graphics.setCanvas(M.world_canvas)
   if button==1--left
   then love.graphics.setColor(1,1,1,1)
   elseif button==2--right
   then love.graphics.setColor(0,0,0,1)
+  else
+    return
   end
-  love.graphics.points(c,r)
+  love.graphics.points(t.c,t.r)
   love.graphics.setColor(1,1,1,1)
   love.graphics.setCanvas()
 end
 
 function M.mousepressed(x, y, button, istouch, presses)
-  local c,r = M.realxytoworldcr(x,y)
-  if not c then return end
+  local t = M.mousepos(x, y)
+  if not t.c then return end
   M.input="draw"
-  M.inputworldcr={c, r}
+  M.inputworldcr={t.c, t.r}
   M.inputworldbutton=button
   love.graphics.setCanvas(M.world_canvas)
   if button==1--left
   then love.graphics.setColor(1,1,1,1)
   elseif button==2--right
   then love.graphics.setColor(0,0,0,1)
+  else
+    return
   end
-  love.graphics.points(c, r)
+  love.graphics.points(t.c, t.r)
   love.graphics.setColor(1,1,1,1)
   love.graphics.setCanvas()
  end
@@ -297,20 +277,21 @@ function M.mousepressed(x, y, button, istouch, presses)
   print("========= BEGIN wheelmoved =========")
   print(
     "screenxy=["..tostring(t.x)..","..tostring(t.y).."]"
-    .." gamexy=["..tostring(t.x_g)..","..tostring(t.y_g).."]"
+    .." gamexy=["..tostring(t.xg)..","..tostring(t.yg).."]"
   )
   print(
-    "worldxy=["..tostring(t.x_gw)..","..tostring(t.y_gw).."]"
-    .." worldcr={"..tostring(t.c_gw)..","..tostring(t.r_gw).."}"
+    "vppos=["..tostring(t.vpx)..","..tostring(t.vpy).."]"
+    .." worldpos={"..tostring(t.c)..","..tostring(t.r).."}"
   )
-  if t.x_gw then
-    --local prevworldzoom = M.worldzoom
-    M.worldzoom = math.max(1,math.min(conf.maxworldzoom, M.worldzoom+x+y))
-    M.worldvp.x=t.c_gw-0.5-(t.x_gw-0.5)/M.worldzoom
-    M.worldvp.y=t.r_gw-0.5-(t.y_gw-0.5)/M.worldzoom
+  if t.c then
+    M.prevvp = helper.shallowcopy(M.vp) -- copy vp to prevvp
+    M.vp.zoom = math.max(1,math.min(conf.maxvpzoom, M.prevvp.zoom+x+y))
+    M.vp.x=1+t.xg-t.c*M.vp.zoom
+    M.vp.y=1+t.yg-t.r*M.vp.zoom
+
     print(
-      "zoom="..M.worldzoom
-      .." vp=["..tostring(M.worldvp.x)..","..tostring(M.worldvp.y).."]"
+      "zoom="..M.vp.zoom
+      .." vp=["..tostring(M.vp.x)..","..tostring(M.vp.y).."]"
     )
   end
   print("========= END wheelmoved =========")
@@ -330,39 +311,42 @@ function realxytogamexy(x, y)
   return unpack({x, y})
 end
 
-function gamexytoworldxy(x, y)
+function gamexytovpxy(x, y)
   if not x or not y then return end
   if (70<=x and x<=637 and 2<=y and y<=357)
   then return unpack({x-69,y-1})
   end
 end
 
-function worldxytoworldcr(x, y)
+function vpxytoworldcr(x, y)
   if not x or not y then return end
-  local c = math.ceil(x/conf.tilew)
-  local r = math.ceil(y/conf.tilew)
-  if conf.worldrows<r or conf.worldcols<c then return end
+  local c = M.vp.c + x / conf.tilew
+  local r = M.vp.r + y / conf.tilew
+  if conf.worldrows < r or conf.worldcols < c then return end
   return unpack({c, r})
 end
 
 M.realxytoworldcr = function(x, y)
   if not x or not y then return end
-  return worldxytoworldcr(gamexytoworldxy(realxytogamexy(x, y)))
+  return vpxytoworldcr(gamexytovpxy(realxytogamexy(x, y)))
 end
 
-M.mousepos = function()
+M.mousepos = function(x, y)
   local r={}
-  r.x, r.y = love.mouse.getPosition()
-  r.x_g, r.y_g = realxytogamexy(r.x, r.y)
-  if r.x_g
+  if not x or not y
   then
-    r.x_gw, r.y_gw = gamexytoworldxy(r.x_g, r.y_g)
-    r.c_gw, r.r_gw = worldxytoworldcr(r.x_gw, r.y_gw)
+    local mposx, mposy = love.mouse.getPosition()
+    x = x or mposx
+    y = y or mposy
+  end
+  r.xg, r.yg = realxytogamexy(x, y)
+  if r.xg
+  then
+    r.vpx, r.vpy = gamexytovpxy(r.xg, r.yg)
+    r.c, r.r = vpxytoworldcr(r.vpx, r.vpy)
   end
   return r
 end
-
-
 
 
 return M
