@@ -1,5 +1,11 @@
 local M = {}
 
+M.round = function(x) -- banker's rounding
+  local r = math.floor(x + 0.5)
+  if r == x + 0.5 and 0 < r % 2 then r = math.ceil(x - 0.5) end
+  return r
+end
+
 M.shallowcopy = function(orig)
     local orig_type = type(orig)
     local copy

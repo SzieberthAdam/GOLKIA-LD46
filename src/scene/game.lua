@@ -1,5 +1,41 @@
 var_dump = require 'lib/var_dump'  -- for debugging
 
+vector = require 'lib/vector'
+-- make vectors roundable
+local _v = vector(4.5, 5.5)
+local _vector = getmetatable(_v)
+local function isvector(t)
+  return getmetatable(t) == _vector
+end
+function _vector:floor()
+  self.x = math.floor(self.x)
+  self.y = math.floor(self.y)
+  return self
+end
+function _vector:ceil()
+  self.x = math.ceil(self.x)
+  self.y = math.ceil(self.y)
+  return self
+end
+function _vector:round()
+  self.x = helper.round(self.x)
+  self.y = helper.round(self.y)
+  return self
+end
+function _vector.__lt(a,b)
+  assert(isvector(a) and isvector(b),
+    "eq: wrong argument types (expected <vector> and <vector>)"
+  )
+  return a.x<b.x and a.y<b.y
+end
+function _vector.__le(a,b)
+  assert(isvector(a) and isvector(b),
+    "eq: wrong argument types (expected <vector> and <vector>)"
+  )
+  return a.x<=b.x and a.y<=b.y
+end
+
+
 local helper = require 'helper'
 
 local conf = require 'conf'
@@ -11,17 +47,93 @@ M.init = function()
   M.running = false
   M.world = {}
 
-  M.vp = {x=70, y=2, c=0, r=0, zoom=1} -- viewport
-  M.prevvp = nil -- previous viewport
+  local vp = {}
+  vp.gamepos = vector(conf.vpgameposx, conf.vpgameposy)
+  vp.pos = vector(0,0)
+  vp.zoomlevel = 1
+
+  function vp:getvppos(pos, frame)
+    if not frame or frame == "game"
+    then
+      local lrgamepos = self.gamepos + vector(conf.worldwidth, conf.worldheight)
+      if self.gamepos <= pos and pos < lrgamepos
+      then
+        return pos - self.gamepos + vector(1,1)
+      end
+    elseif frame == "vp"
+    then return pos
+    elseif frame == "world"
+    then return (
+      pos * self.zoomlevel
+      + self:getbaseanchorvec(pos, frame) * (self.zoomlevel - 1)
+    )
+    end
+  end
+
+  function vp:getgamepos(pos, frame)
+    if not frame or frame == "vp"
+    then
+      return self.gamepos - vector(1,1) + pos
+    elseif frame == "game"
+    then return pos
+    elseif frame == "world"
+    then
+      return self.gamepos + self.pos + self.zoomlevel * pos
+    end
+  end
+
+  function vp:settlepos(pos)
+    pos = pos or self.pos
+    if pos.x < conf.worldwidth / 2
+    then pos.x = math.floor(pos.x)
+    else pos.x = math.ceil(pos.x)
+    end
+    if pos.y < conf.worldheight / 2
+    then pos.y = math.floor(pos.y)
+    else pos.y = math.ceil(pos.y)
+    end
+    return pos
+  end
+
+  function vp:getworldpos(pos, frame)
+    if not frame or frame == "game"
+    then
+      pos = self:getvppos(pos, frame)
+      if not pos then return end
+      return ((pos - self.pos) / self.zoomlevel):ceil()
+    elseif frame == "vp"
+    then
+      return ((pos - self.pos) / self.zoomlevel):ceil()
+    elseif frame == "world"
+    then return pos
+    end
+  end
+
+  function vp:getbaseanchorvec(pos, frame)
+    local wpos = self:getworldpos(pos, frame)
+    r = vector(0,0)
+    if wpos.x < conf.worldwidth / 2
+    then r.x = -1
+    end
+    if wpos.y < conf.worldheight / 2
+    then r.y = -1
+    end
+    return r
+  end
+
+  function vp:getanchorvec(pos, frame)
+    if self.zoomlevel == 1 then return self:getbaseanchorvec(pos, frame) end
+    local wpos = self:getworldpos(pos, frame)
+    return pos - self.pos - wpos * self.zoomlevel
+  end
+
+
+  M.vp = vp
 
   M.relaxframes = conf.turnframes
 
   M.input=nil
-  M.inputworldcr=nil
   M.inputworldbutton=nil
-
-
-
 
   M.background_canvas = love.graphics.newCanvas(
     conf.screen_width, conf.screen_height
@@ -41,12 +153,12 @@ M.init = function()
   )
 
   M.prev_world_canvas = love.graphics.newCanvas(
-    conf.worldcols, conf.worldrows,
+    conf.worldwidth, conf.worldheight,
     {format = "r8"} -- for efficiency
   )
 
   M.world_canvas = love.graphics.newCanvas(
-    conf.worldcols, conf.worldrows,
+    conf.worldwidth, conf.worldheight,
     {format = "r8"}
   )
 
@@ -152,8 +264,14 @@ M.draw = function()
   love.graphics.draw(M.background_canvas)
   love.graphics.setScissor(70, 2, 568, 356)
   love.graphics.setShader(M.r8backshader)
-  love.graphics.draw(M.world_canvas, M.vp.x, M.vp.y, 0,
-    conf.tilew*M.vp.zoom, conf.tilew*M.vp.zoom)
+  love.graphics.draw(
+    M.world_canvas,
+    M.vp.gamepos.x + M.vp.pos.x,
+    M.vp.gamepos.y + M.vp.pos.y,
+    0,
+    M.vp.zoomlevel,
+    M.vp.zoomlevel
+  )
   love.graphics.setShader()
   love.graphics.setScissor( x, y, width, height )
   love.graphics.setCanvas()
@@ -176,7 +294,8 @@ M.update_world_canvas = function()
   love.graphics.draw(M.world_canvas, 0, 0)
   love.graphics.setCanvas()
 
-  -- apply the shader (GOL step) on prev_world_canvas and draw it to world_canvas
+  -- apply the shader (GOL step) on prev_world_canvas
+  -- and draw it to world_canvas
   love.graphics.setCanvas(M.world_canvas)
   love.graphics.setColor(1,1,1,1)
   love.graphics.setShader(M.golshader)
@@ -189,10 +308,10 @@ M.update_world_canvas = function()
 end
 
 M.set_random_world = function()
-  for r = 1, conf.worldrows, 1
+  for r = 1, conf.worldheight, 1
   do
     M.world[r] = {}
-    for c = 1, conf.worldcols, 1
+    for c = 1, conf.worldwidth, 1
     do
       M.world[r][c] = love.math.random(0, 1)
     end
@@ -215,6 +334,14 @@ M.restart = function()
 end
 
 
+function setposval(v)
+  assert(v==0 or v==1, "setposval: expected 0 or 1 as value")
+  love.graphics.setCanvas(M.world_canvas)
+  love.graphics.setColor(v,v,v,1)
+  love.graphics.points(pos.x,pos.y)
+  love.graphics.setColor(1,1,1,1)
+  love.graphics.setCanvas()
+end
 
 
 
@@ -231,70 +358,84 @@ end
 
 function M.mousemoved(x, y, dx, dy, istouch)
   if M.input ~= "draw" then return end
-  local t = M.mousepos(x, y)
-  if not t.c then return end
+  local gamepos = realxytogamepos(x, y)
+  pos = M.vp:getworldpos(gamepos)
+  if not pos then return end
   local button = M.inputworldbutton
-  love.graphics.setCanvas(M.world_canvas)
-  if button==1--left
-  then love.graphics.setColor(1,1,1,1)
-  elseif button==2--right
-  then love.graphics.setColor(0,0,0,1)
-  else
-    return
-  end
-  love.graphics.points(t.c,t.r)
-  love.graphics.setColor(1,1,1,1)
-  love.graphics.setCanvas()
+  if button==1 or button==2 then setposval(2-button) end
 end
 
 function M.mousepressed(x, y, button, istouch, presses)
-  local t = M.mousepos(x, y)
-  if not t.c then return end
+  local gamepos = realxytogamepos(x, y)
+  pos = M.vp:getworldpos(gamepos)
+  if not pos then return end
   M.input="draw"
-  M.inputworldcr={t.c, t.r}
   M.inputworldbutton=button
-  love.graphics.setCanvas(M.world_canvas)
-  if button==1--left
-  then love.graphics.setColor(1,1,1,1)
-  elseif button==2--right
-  then love.graphics.setColor(0,0,0,1)
-  else
-    return
-  end
-  love.graphics.points(t.c, t.r)
-  love.graphics.setColor(1,1,1,1)
-  love.graphics.setCanvas()
+  if button==1 or button==2 then setposval(2-button) end
  end
 
  function M.mousereleased(x, y, button, istouch, presses)
   M.input=nil
-  M.inputworldcr=nil
   M.inputworldbutton=nil
  end
 
  function M.wheelmoved(x, y)
-  local t = M.mousepos()
-  print("========= BEGIN wheelmoved =========")
-  print(
-    "screenxy=["..tostring(t.x)..","..tostring(t.y).."]"
-    .." gamexy=["..tostring(t.xg)..","..tostring(t.yg).."]"
-  )
-  print(
-    "vppos=["..tostring(t.vpx)..","..tostring(t.vpy).."]"
-    .." worldpos={"..tostring(t.c)..","..tostring(t.r).."}"
-  )
-  if t.c then
-    M.prevvp = helper.shallowcopy(M.vp) -- copy vp to prevvp
-    M.vp.zoom = math.max(1,math.min(conf.maxvpzoom, M.prevvp.zoom+x+y))
-    M.vp.x=1+t.xg-t.c*M.vp.zoom
-    M.vp.y=1+t.yg-t.r*M.vp.zoom
-
-    print(
-      "zoom="..M.vp.zoom
-      .." vp=["..tostring(M.vp.x)..","..tostring(M.vp.y).."]"
-    )
+  local mx, my = love.mouse.getPosition()
+  local gamepos = realxytogamepos(mx, my)
+  --print("------------------------------")
+  --print("gamepos="..tostring(gamepos))
+  local pos = M.vp:getvppos(gamepos)
+  if not pos then return end
+  --print("pos="..tostring(M.vp:getvppos(gamepos)))
+  local wpos = M.vp:getworldpos(gamepos)
+  --print("wpos="..tostring(M.vp:getworldpos(gamepos)))
+  local oldzoomlevel = M.vp.zoomlevel
+  local newzoomlevel = math.max(1 ,math.min(conf.maxvpzoomlevel,
+    M.vp.zoomlevel + x + y
+  ))
+  --print("oldzoomlevel="..oldzoomlevel.." newzoomlevel="..newzoomlevel)
+  --if newzoomlevel==1
+  --then
+  --  M.vp.zoomlevel = newzoomlevel
+  --  M.vp.pos = vector(0, 0)
+  --  return
+  --end
+  local anchorvec = M.vp:getanchorvec(pos, "vp")
+  if 1 < oldzoomlevel then anchorvec = anchorvec / (oldzoomlevel-1) end
+  --print("anchorvec="..tostring(anchorvec))
+  local anchorvec = anchorvec * (newzoomlevel - 1)
+  if anchorvec.x < 0
+  then anchorvec.x = math.floor(anchorvec.x)
+  else anchorvec.x = math.ceil(anchorvec.x)
   end
-  print("========= END wheelmoved =========")
+  if anchorvec.y < 0
+  then anchorvec.y = math.floor(anchorvec.y)
+  else anchorvec.y = math.ceil(anchorvec.y)
+  end
+  --print("anchorvec="..tostring(anchorvec))
+  local newpos = wpos * newzoomlevel + anchorvec:ceil()
+  --print("newpos="..tostring(newpos))
+  local newvppos = pos - newpos  --normally it is nonpositive
+  --print("newvppos="..tostring(newvppos))
+  M.vp.zoomlevel = newzoomlevel
+  -- enfoce snap to border
+  local adjvec = vector(0, 0)
+  if newzoomlevel == 1 then
+    adjvec = adjvec - newvppos
+  else
+    if 0 < newvppos.x then adjvec.x = -newvppos.x end
+    if 0 < newvppos.y then adjvec.y = -newvppos.y end
+    local rightdiff = (newzoomlevel - 1) * conf.worldwidth + newvppos.x
+    if rightdiff < 0 then adjvec.x = -rightdiff end
+    local bottomdiff = (newzoomlevel - 1) * conf.worldheight + newvppos.y
+    if bottomdiff < 0 then adjvec.y = -bottomdiff end
+  end
+  --print("adjvec="..tostring(adjvec))
+  M.vp.pos = newvppos + adjvec
+  local newmpos = vector(mx, my) + adjvec * state.scale
+  --print("oldmpos="..tostring(vector(mx, my)))
+  --print("newmpos="..tostring(newmpos))
+  --love.mouse.setPosition(newmpos.x, newmpos.y)
 end
 
 
@@ -302,51 +443,13 @@ end
 
 -----------------------------------  HELPER  -----------------------------------
 
-function realxytogamexy(x, y)
+function realxytogamepos(x, y)
   if not x or not y then return end
   x = math.floor(x / state.scale) - state.background_offset[1]
   y = math.floor(y / state.scale) - state.background_offset[2]
   if x < 0 or conf.screen_width < x then return end
   if y < 0 or conf.screen_height < y then return end
-  return unpack({x, y})
+  return vector(x, y)
 end
-
-function gamexytovpxy(x, y)
-  if not x or not y then return end
-  if (70<=x and x<=637 and 2<=y and y<=357)
-  then return unpack({x-69,y-1})
-  end
-end
-
-function vpxytoworldcr(x, y)
-  if not x or not y then return end
-  local c = M.vp.c + x / conf.tilew
-  local r = M.vp.r + y / conf.tilew
-  if conf.worldrows < r or conf.worldcols < c then return end
-  return unpack({c, r})
-end
-
-M.realxytoworldcr = function(x, y)
-  if not x or not y then return end
-  return vpxytoworldcr(gamexytovpxy(realxytogamexy(x, y)))
-end
-
-M.mousepos = function(x, y)
-  local r={}
-  if not x or not y
-  then
-    local mposx, mposy = love.mouse.getPosition()
-    x = x or mposx
-    y = y or mposy
-  end
-  r.xg, r.yg = realxytogamexy(x, y)
-  if r.xg
-  then
-    r.vpx, r.vpy = gamexytovpxy(r.xg, r.yg)
-    r.c, r.r = vpxytoworldcr(r.vpx, r.vpy)
-  end
-  return r
-end
-
 
 return M

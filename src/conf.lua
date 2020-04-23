@@ -2,9 +2,11 @@ local M = {}
 
 M.debug = true
 
-M.tilew = 1
-M.worldcols = math.floor(568 / M.tilew)
-M.worldrows = math.floor(356 / M.tilew)
+M.worldwidth = 568
+M.worldheight = 356
+
+M.vpgameposx = 70
+M.vpgameposy = 2
 
 M.screen_width = 640
 M.screen_height = 360
@@ -19,7 +21,7 @@ M.loop_relax = 0.005
 
 M.turnframes = 5
 
-M.maxvpzoom = 16
+M.maxvpzoomlevel = 16
 
 M.black = {0.13333333333333333, 0.13725490196078433, 0.13725490196078433}
 M.white = {0.9411764705882353, 0.9647058823529412, 0.9411764705882353}
