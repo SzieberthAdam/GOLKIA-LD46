@@ -39,7 +39,6 @@ end
 local helper = require 'helper'
 
 local conf = require 'conf'
-local state = require 'state'
 
 local M = {}
 
@@ -53,6 +52,7 @@ M.init = function()
   vp.zoomlevel = 1
 
   function vp:getvppos(pos, frame)
+    if not pos then return end
     if not frame or frame == "game"
     then
       local lrgamepos = self.gamepos + vector(conf.worldwidth, conf.worldheight)
@@ -71,6 +71,7 @@ M.init = function()
   end
 
   function vp:getgamepos(pos, frame)
+    if not pos then return end
     if not frame or frame == "vp"
     then
       return self.gamepos - vector(1,1) + pos
@@ -96,6 +97,7 @@ M.init = function()
   end
 
   function vp:getworldpos(pos, frame)
+    if not pos then return end
     if not frame or frame == "game"
     then
       pos = self:getvppos(pos, frame)
@@ -110,6 +112,7 @@ M.init = function()
   end
 
   function vp:getbaseanchorvec(pos, frame)
+    if not pos then return end
     local wpos = self:getworldpos(pos, frame)
     r = vector(0,0)
     if wpos.x < conf.worldwidth / 2
@@ -122,6 +125,7 @@ M.init = function()
   end
 
   function vp:getanchorvec(pos, frame)
+    if not pos then return end
     if self.zoomlevel == 1 then return self:getbaseanchorvec(pos, frame) end
     local wpos = self:getworldpos(pos, frame)
     return pos - self.pos - wpos * self.zoomlevel
@@ -177,7 +181,7 @@ M.init = function()
     {format = "r8"}
   )
 
-  M.rand()
+  M.showimage("graphics/intro.png")
 
 
 
@@ -289,6 +293,13 @@ M.draw = function()
   )
   love.graphics.setShader()
   love.graphics.setScissor( x, y, width, height )
+  love.graphics.setColor(1,1,1,1)
+  love.graphics.rectangle("fill",
+    math.floor(conf.brushx-conf.brush_size/2),
+    math.floor(conf.brushy-conf.brush_size/2),
+    conf.brush_size,
+    conf.brush_size
+  )
   love.graphics.setCanvas()
 end
 
@@ -366,22 +377,26 @@ M.rand = function()
   M.update_world_canvas()
 end
 
-M.jhc = function()
+M.showimage = function(path)
 love.graphics.setCanvas(M.world_canvas)
 love.graphics.clear(0, 0, 0, 1)
 love.graphics.setColor(1,1,1,1)
-local image = love.graphics.newImage("graphics/jhc.png")
+local image = love.graphics.newImage(path)
 love.graphics.draw(image, 0, 0)
 love.graphics.setCanvas(M.prev_world_canvas)
 love.graphics.clear(0, 0, 0, 1)
 love.graphics.setCanvas()
 end
 
-function setposval(v)
+function setposval(pos, v, size)
   assert(v==0 or v==1, "setposval: expected 0 or 1 as value")
   love.graphics.setCanvas(M.world_canvas)
   love.graphics.setColor(v,v,v,1)
-  love.graphics.points(pos.x,pos.y)
+  if size == 1 then love.graphics.points(pos.x,pos.y)
+  else
+    local newpos = M.vp:settlepos(pos - vector(size/2, size/2))
+    love.graphics.rectangle("fill", newpos.x, newpos.y, size, size)
+  end
   love.graphics.setColor(1,1,1,1)
   love.graphics.setCanvas()
 end
@@ -408,30 +423,37 @@ function M.keypressed(key, isrepeat)
     conf.turnframes = 5
   elseif key == "f" then
     conf.turnframes = math.max(1, conf.turnframes - 1)
+  elseif key == "q" then
+    conf.brush_size = math.min(conf.max_brush_size, conf.brush_size + 1)
+  elseif key == "a" then
+    conf.brush_size = math.max(1, conf.brush_size - 1)
+  elseif key == "c" then
+    M.running=false
+    M.showimage("graphics/jhc.png")
   end
 end
 
 function M.mousemoved(x, y, dx, dy, istouch)
   local gamepos = realxytogamepos(x, y)
-  pos = M.vp:getworldpos(gamepos)
+  local pos = M.vp:getworldpos(gamepos)
   if not pos then return end
   local button = M.inputworldbutton
   if M.input == "draw" then
-    if button==1 or button==2 then setposval(2-button) end
+    if button==1 or button==2 then setposval(pos, 2-button, conf.brush_size) end
   elseif M.input == "pan" and button == 3 then
-    M.vp.pos = M.vp.pos + vector(dx, dy) / state.scale
+    M.vp.pos = M.vp.pos + vector(dx, dy) / conf.scale
     M.vp:clamp()
   end
 end
 
 function M.mousepressed(x, y, button, istouch, presses)
   local gamepos = realxytogamepos(x, y)
-  pos = M.vp:getworldpos(gamepos)
+  local pos = M.vp:getworldpos(gamepos)
   if not pos then return end
   M.input="draw"
   M.inputworldbutton=button
   if button==1 or button==2
-  then setposval(2-button)
+  then setposval(pos, 2-button, conf.brush_size)
   elseif button==3
   then
     M.input="pan"
@@ -494,8 +516,8 @@ end
 
 function realxytogamepos(x, y)
   if not x or not y then return end
-  x = math.floor(x / state.scale) - state.background_offset[1]
-  y = math.floor(y / state.scale) - state.background_offset[2]
+  x = math.floor(x / conf.scale) - conf.background_offset[1]
+  y = math.floor(y / conf.scale) - conf.background_offset[2]
   if x < 0 or conf.screen_width < x then return end
   if y < 0 or conf.screen_height < y then return end
   return vector(x, y)

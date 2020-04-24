@@ -1,6 +1,6 @@
 local M = {}
 
-M.debug = true
+M.debug = false
 
 M.worldwidth = 568
 M.worldheight = 356
@@ -23,6 +23,13 @@ M.turnframes = 5
 
 M.maxvpzoomlevel = 16
 
+M.brush_size = 1
+M.max_brush_size = 56
+
+M.brushx = 33.5
+M.brushy = 304.5
+
+
 M.black = {0.13333333333333333, 0.13725490196078433, 0.13725490196078433}
 M.white = {0.9411764705882353, 0.9647058823529412, 0.9411764705882353}
 M.green = {0.26666666666666666, 0.6666666666666666, 0.6}
@@ -38,7 +45,7 @@ function love.conf(t)
   t.window.width = M.window_width
   -- Enable fullscreen (boolean)
   t.window.fullscreen = false
-  -- The window height (number)       -- Remove all border visuals from the window (boolean)
+  -- The window height (number)
   t.window.height = M.window_height
   -- Let the window be user-resizable (boolean)
   t.window.resizable = true

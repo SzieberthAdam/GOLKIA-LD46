@@ -3,7 +3,6 @@ var_dump = require 'lib/var_dump'  -- for debugging
 local gameloop = require 'gameloop'
 
 local conf = require 'conf'
-local state = require 'state'
 
 scene = require 'scene'
 
@@ -12,9 +11,9 @@ function love.draw()
   --if love.report then print(love.report) end--profile info DEBUG
   scene.curr.draw()
   love.graphics.push() -- stores the default coordinate system
-  love.graphics.scale(state.scale) -- zoom the camera
+  love.graphics.scale(conf.scale) -- zoom the camera
   -- use the new coordinate system to draw the viewed scene
-  local bgx, bgy = unpack(state.background_offset)
+  local bgx, bgy = unpack(conf.background_offset)
   love.graphics.draw(scene.curr.canvas, bgx+0, bgy+0)
   love.graphics.pop() -- return to the default coordinates
 end
@@ -44,8 +43,8 @@ function love.resize(w, h)
   -- Now I update the offset of the maincanvas
   local ox = math.floor((w / scale - mcw) / 2)
   local oy = math.floor((h / scale - mch) / 2)
-  state.scale = scale
-  state.background_offset = {ox, oy}
+  conf.scale = scale
+  conf.background_offset = {ox, oy}
 end
 
 love.frame = 0

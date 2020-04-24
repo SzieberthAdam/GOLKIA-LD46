@@ -1,0 +1,1 @@
+copy /b ..\love2d\love.exe+GOLKIA.love GOLKIA.exe
