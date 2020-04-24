@@ -177,7 +177,7 @@ M.init = function()
     {format = "r8"}
   )
 
-  M.restart()
+  M.rand()
 
 
 
@@ -343,19 +343,39 @@ M.set_random_world = function()
   love.graphics.setCanvas()
 end
 
-M.restart = function()
-  --M.set_random_world()
+M.fill = function()
   love.graphics.setCanvas(M.world_canvas)
-  love.graphics.clear(0, 0, 0, 1)
-  love.graphics.setColor(1,1,1,1)
-  local image = love.graphics.newImage("graphics/jhc.png")
-  love.graphics.draw(image, 0, 0)
+  love.graphics.clear(1, 1, 1, 1)
   love.graphics.setCanvas(M.prev_world_canvas)
-  love.graphics.clear(0, 0, 0, 1)
+  love.graphics.clear(1, 1, 1, 1)
+  love.graphics.setColor(1, 1, 1, 1)
   love.graphics.setCanvas()
-  --M.update_world_canvas()
 end
 
+M.empt = function()
+  love.graphics.setCanvas(M.world_canvas)
+  love.graphics.clear(0, 0, 0, 1)
+  love.graphics.setCanvas(M.prev_world_canvas)
+  love.graphics.clear(0, 0, 0, 1)
+  love.graphics.setColor(1, 1, 1, 1)
+  love.graphics.setCanvas()
+end
+
+M.rand = function()
+  M.set_random_world()
+  M.update_world_canvas()
+end
+
+M.jhc = function()
+love.graphics.setCanvas(M.world_canvas)
+love.graphics.clear(0, 0, 0, 1)
+love.graphics.setColor(1,1,1,1)
+local image = love.graphics.newImage("graphics/jhc.png")
+love.graphics.draw(image, 0, 0)
+love.graphics.setCanvas(M.prev_world_canvas)
+love.graphics.clear(0, 0, 0, 1)
+love.graphics.setCanvas()
+end
 
 function setposval(v)
   assert(v==0 or v==1, "setposval: expected 0 or 1 as value")
@@ -371,11 +391,23 @@ end
 -----------------------------------  EVENTS  -----------------------------------
 
 function M.keypressed(key, isrepeat)
-  if key == "n" then
+  if key == "w" then
     M.running=false
-    M.restart()
+    M.fill()
+  elseif key == "e" then
+    M.running=false
+    M.empt()
+  elseif key == "r" then
+    M.running=false
+    M.rand()
   elseif key == "space" then
     M.running = not M.running
+  elseif key == "s" then
+    conf.turnframes = conf.turnframes + 1
+  elseif key == "d" then
+    conf.turnframes = 5
+  elseif key == "f" then
+    conf.turnframes = math.max(1, conf.turnframes - 1)
   end
 end
 
