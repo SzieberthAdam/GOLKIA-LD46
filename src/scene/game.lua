@@ -127,6 +127,21 @@ M.init = function()
     return pos - self.pos - wpos * self.zoomlevel
   end
 
+  function vp:clamp() -- enforce to fill vp area with world
+    local adjvec = vector(0, 0)
+    if self.zoomlevel == 1 then
+      adjvec = adjvec - self.pos
+    else
+      if 0 < self.pos.x then adjvec.x = -self.pos.x end
+      if 0 < self.pos.y then adjvec.y = -self.pos.y end
+      local rightdiff = (self.zoomlevel - 1) * conf.worldwidth + self.pos.x
+      if rightdiff < 0 then adjvec.x = -rightdiff end
+      local bottomdiff = (self.zoomlevel - 1) * conf.worldheight + self.pos.y
+      if bottomdiff < 0 then adjvec.y = -bottomdiff end
+    end
+    --print("adjvec="..tostring(adjvec))
+    self.pos = self.pos + adjvec
+  end
 
   M.vp = vp
 
@@ -329,8 +344,16 @@ M.set_random_world = function()
 end
 
 M.restart = function()
-  M.set_random_world()
-  M.update_world_canvas()
+  --M.set_random_world()
+  love.graphics.setCanvas(M.world_canvas)
+  love.graphics.clear(0, 0, 0, 1)
+  love.graphics.setColor(1,1,1,1)
+  local image = love.graphics.newImage("graphics/jhc.png")
+  love.graphics.draw(image, 0, 0)
+  love.graphics.setCanvas(M.prev_world_canvas)
+  love.graphics.clear(0, 0, 0, 1)
+  love.graphics.setCanvas()
+  --M.update_world_canvas()
 end
 
 
@@ -357,12 +380,16 @@ function M.keypressed(key, isrepeat)
 end
 
 function M.mousemoved(x, y, dx, dy, istouch)
-  if M.input ~= "draw" then return end
   local gamepos = realxytogamepos(x, y)
   pos = M.vp:getworldpos(gamepos)
   if not pos then return end
   local button = M.inputworldbutton
-  if button==1 or button==2 then setposval(2-button) end
+  if M.input == "draw" then
+    if button==1 or button==2 then setposval(2-button) end
+  elseif M.input == "pan" and button == 3 then
+    M.vp.pos = M.vp.pos + vector(dx, dy) / state.scale
+    M.vp:clamp()
+  end
 end
 
 function M.mousepressed(x, y, button, istouch, presses)
@@ -371,7 +398,13 @@ function M.mousepressed(x, y, button, istouch, presses)
   if not pos then return end
   M.input="draw"
   M.inputworldbutton=button
-  if button==1 or button==2 then setposval(2-button) end
+  if button==1 or button==2
+  then setposval(2-button)
+  elseif button==3
+  then
+    M.input="pan"
+    M.inputworldbutton=button
+  end
  end
 
  function M.mousereleased(x, y, button, istouch, presses)
@@ -418,24 +451,8 @@ function M.mousepressed(x, y, button, istouch, presses)
   local newvppos = pos - newpos  --normally it is nonpositive
   --print("newvppos="..tostring(newvppos))
   M.vp.zoomlevel = newzoomlevel
-  -- enfoce snap to border
-  local adjvec = vector(0, 0)
-  if newzoomlevel == 1 then
-    adjvec = adjvec - newvppos
-  else
-    if 0 < newvppos.x then adjvec.x = -newvppos.x end
-    if 0 < newvppos.y then adjvec.y = -newvppos.y end
-    local rightdiff = (newzoomlevel - 1) * conf.worldwidth + newvppos.x
-    if rightdiff < 0 then adjvec.x = -rightdiff end
-    local bottomdiff = (newzoomlevel - 1) * conf.worldheight + newvppos.y
-    if bottomdiff < 0 then adjvec.y = -bottomdiff end
-  end
-  --print("adjvec="..tostring(adjvec))
-  M.vp.pos = newvppos + adjvec
-  local newmpos = vector(mx, my) + adjvec * state.scale
-  --print("oldmpos="..tostring(vector(mx, my)))
-  --print("newmpos="..tostring(newmpos))
-  --love.mouse.setPosition(newmpos.x, newmpos.y)
+  M.vp.pos = newvppos
+  M.vp:clamp()
 end
 
 

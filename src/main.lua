@@ -78,7 +78,7 @@ end
 
 function love.mousemoved(x, y, dx, dy, istouch)
   local f = scene.curr.mousemoved
-  if f then f(x, y, button, istouch, presses) end
+  if f then f(x, y, dx, dy, istouch) end
 end
 
 function love.mousepressed(x, y, button, istouch, presses)
@@ -93,5 +93,5 @@ end
 
 function love.wheelmoved(x, y)
   local f = scene.curr.wheelmoved
-  if f then f(x, y, button, istouch, presses) end
+  if f then f(x, y) end
 end
